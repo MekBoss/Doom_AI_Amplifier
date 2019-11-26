@@ -1,0 +1,608 @@
+//to make it more OOA, OOD and OOP specific, here is a base class
+class node_base : thinker
+{
+//pointer to event with all nodes
+protected eventhandler all_graph_list;
+
+//node which "compute" this node
+protected node_base root_node;
+
+//some maps have very specific sectors, which by gzdoom counts as single sector
+//which in fact are several separate different polygons
+//handle it here
+//array of all sub nodes
+protected array<sub_node> sub_nodes;
+
+//return all lines in current sector which have common vertex
+protected line_array_wrapper neighborn_lines(line l) const
+{
+    line_array_wrapper b = new("line_array_wrapper");
+
+    for(uint i = 0; i < own_sector.lines.size(); i++)
+    {
+        if(own_sector.lines[i].v1.index() == l.v1.index() || own_sector.lines[i].v1.index() == l.v2.index() )
+            line_array_wrapper(b).lines_array.push(own_sector.lines[i]);
+
+        if(own_sector.lines[i].v2.index() == l.v1.index() || own_sector.lines[i].v2.index() == l.v2.index() )
+            line_array_wrapper(b).lines_array.push(own_sector.lines[i]);
+    }
+
+    return b;
+}
+
+//what function name says
+protected bool is_single_polygon()
+{
+    array<line> processed_lines; processed_lines.clear();
+
+    //check every line in sector
+    for(uint i = 0; i < own_sector.lines.size(); i++)
+    {
+        line beginning = own_sector.lines[i];
+        processed_lines.push(beginning);
+
+        bool all_lines = false;
+
+        while(all_lines == false)
+        {
+            for(uint j = 0; j < processed_lines.size(); j++)
+            {
+                line_array_wrapper neighborgs = neighborn_lines(processed_lines[j]);
+
+                uint lines_amount = processed_lines.size();
+
+                for(uint k = 0; k < neighborgs.lines_array.size(); k++)
+                {
+                    if(processed_lines.find(neighborgs.lines_array[k]) == processed_lines.size() )
+                        processed_lines.push(neighborgs.lines_array[k]);
+                
+                }
+                neighborgs.destroy();
+
+                //since nothing was added, it already iterate through all
+                //avaliable(connected) lines
+                if(lines_amount == processed_lines.size() )
+                {
+                    //if there are still lines
+                    if(processed_lines.size() < own_sector.lines.size() )
+                    {
+                        sub_node n = new("sub_node");
+
+                        sub_node(n).init(own_sector, all_graph_list);
+                        sub_nodes.push( (sub_node)(n) );
+                    }
+                }
+            }
+
+            all_lines = true;
+        }
+    }
+
+    if(sub_nodes.size() > 0)
+        return false;
+
+    return true;
+}
+
+//pointer to sector which represented by this node
+protected sector own_sector;
+
+sector get_sector() const
+{
+    return own_sector;
+}
+
+//in case if sector have closely spaced pillars/bars which cant be passed
+//or there are any other problems with passing this sector, set this bool to true
+protected bool problem_with_passing;
+
+//self number in list of thinkers and also number of sector in sectors list
+//i.e. node ID
+protected uint array_number;
+int get_ID()
+{
+    return array_number;
+}
+
+//creating of node and attaching it to sector
+thinker init(sector polygon, eventhandler asd)
+{
+    all_graph_list = asd;
+    own_sector = polygon;
+    array_number = find_sector(own_sector);
+    performance_counter = 1;
+    node_group_id = -1;
+    path_cost = double.infinity;
+    processed = false;
+
+    return self;
+}
+
+
+//update informacion about neighborg nodes every perf. coun. tics 
+uint performance_counter;
+
+
+//id to check if nodes in same group
+protected int node_group_id;
+int get_node_group_id() const
+{
+    return node_group_id;
+}
+protected void set_group_id(int i)
+{
+    node_group_id = i;
+}
+
+//switch for checking is this node was processed
+protected bool processed;
+protected void set_processed()
+{
+    processed = true;
+}
+protected void set_unprocessed()
+{
+    processed = false;
+}
+bool get_processed()
+{
+    return processed;
+}
+
+
+
+protected bool deadlock;
+bool is_deadlock()
+{
+    return deadlock;
+}
+
+//center of a sector as 3d vector
+protected vector3 center_point;
+
+//getter
+vector3 get_center()
+{
+    return center_point;
+}
+//setter
+protected void find_center()
+{
+    if(own_sector)
+    {
+        center_point = (own_sector.centerspot, own_sector.floorplane.ZatPoint(own_sector.centerspot) );
+    }
+}
+
+//simple distance 3d squared between two vectors
+double points_distance(vector3 v1, vector3 v2)
+{
+    if(v1 == v2) return 0;
+    vector3 v3 = LevelLocals.Vec3Diff(v1, v2);
+    return v3 dot v3;
+}
+
+//check length of a line between two sectors
+protected double vector_length_squared(vector2 i)
+{
+    return i.x * i.x + i.y * i.y;
+}
+
+//Level.Sectors is not a real array so...
+protected int find_sector(sector which) const
+{
+    for(uint i = 0; i < Level.Sectors.Size(); i++)
+    {
+        if(Level.Sectors[i] == which)
+        {
+            return i; break;
+        }
+    }
+    return -1;
+}
+
+
+//hack here, sectors, lines and related stuff stored in node
+//have (at least must have) same indexes in all arrays
+
+//store here all nav thinkers of neighborn sectors
+protected array<node_base> neighborn_nodes;
+
+//pointers to lines which are shared to, at this moment, two sectors
+protected array<line> boundary_lines;
+
+//midpoint of all lines which leads to another sectors
+protected array<vector_wrapper> midlines;
+
+
+//store here pointers to node which construct
+//almose minimal spanning tree of a level graph
+protected array<node_base> spanning_tree_nodes;
+
+//return line between "this" sector and another
+line line_between_sectors(node_base which = null) const 
+{
+    if(which)
+    {
+        uint i = neighborn_nodes.find(which);
+
+        if(i < neighborn_nodes.size() )
+        {
+            return boundary_lines[i];
+        }
+    }
+    return null;
+}
+
+//return vector2 as position of line center between "this" and another sector
+vector_wrapper midpoiont_of_line(node_base node) const
+{
+    if(node)
+    {
+        uint i = neighborn_nodes.find(node);
+        if(i < neighborn_nodes.size() )
+        {
+            return midlines[i];
+        }
+    }
+    return null;
+}
+
+//calculate midpoint
+protected vector2 midpoint_coord(vector2 v1, vector2 v2)
+{
+    return (v1 + v2) / 2;
+}
+
+//try to find all neighbor sectors to its own and transform them into node_base 
+protected void find_neighborns()
+{
+    if(own_sector && all_graph_list)
+    {
+        for(int i = 0; i < own_sector.lines.Size(); i++)
+        {
+            //exclude one sided lines
+            if(own_sector.lines[i].frontsector && own_sector.lines[i].backsector)
+            {
+                if(own_sector.lines[i].frontsector != own_sector)
+                {
+                    neighborn_nodes.push( (node_base)(path_algorithm(all_graph_list).get_nav_num( find_sector(own_sector.lines[i].frontsector) ) ) );
+                }
+                else
+                {
+                    neighborn_nodes.push( (node_base)(path_algorithm(all_graph_list).get_nav_num( find_sector(own_sector.lines[i].backsector) ) ) );
+                }
+
+                boundary_lines.push(own_sector.lines[i]);
+
+                //hack, zscript cant assign vector2 into vector3 pointer
+                //regardles that vector2 is subset of vector3
+                vector_wrapper mid = vector_wrapper(new("vector_wrapper") );
+                //so I just add 2d to 3d here
+                mid.arrow = (0, 0, 0) + midpoint_coord(own_sector.lines[i].v1.p, own_sector.lines[i].v2.p);
+                midlines.push(mid);
+            }
+        }
+    }
+}
+
+
+//what function name says
+protected array_wrapper get_all_neighborgs()
+{
+    array_wrapper all = array_wrapper(new("array_wrapper") );
+    all.path.copy(neighborn_nodes);
+    return (array_wrapper)(all);
+}
+
+//for pathfinding scripts
+//return all neighborn nodes which were not processed
+protected array_wrapper get_unmarked_neighborgs()
+{
+    array_wrapper unmarked = array_wrapper(new("array_wrapper") );
+
+    for(uint i = 0; i < neighborn_nodes.size(); i++)
+    {
+        if(node_base(neighborn_nodes[i]).processed == false )
+        {
+            unmarked.path.push(neighborn_nodes[i]);
+        }
+    }
+    return (array_wrapper)(unmarked);
+}
+
+//return amoun of neighborns
+uint count_neigh() const
+{
+    return neighborn_nodes.size();
+}
+
+//set to true if sector connected to another sector through line portal
+protected bool have_line_portal;
+bool is_have_portal() const
+{
+    return have_line_portal;
+}
+
+//find which sectors connected to it through postals
+protected void find_line_portals()
+{
+    if(own_sector)
+    {
+        for(uint i = 0; i < own_sector.lines.size(); i++)
+        {
+            if(own_sector.lines[i].isLinePortal() == true)
+            {
+                have_line_portal = true;
+                neighborn_nodes.push( path_algorithm(all_graph_list).sector_to_node(own_sector.lines[i].getPortalDestination().frontsector) );
+
+                subgraph_connection.push( node_base(neighborn_nodes[neighborn_nodes.size()-1]).get_node_group_id() );
+            }
+        }
+    }
+}
+
+//store here to subgraph can be reached from this sector through portal
+protected array<int> subgraph_connection;
+
+//direct copypaste from source
+//it must be global enums btw
+enum map_type
+{
+	MAPTYPE_UNKNOWN = 0,
+	MAPTYPE_DOOM,
+	MAPTYPE_HEXEN,
+	MAPTYPE_BUILD,
+	MAPTYPE_UDMF
+};
+
+//is sector is door/lift
+protected bool movable_sector;
+
+//check sector height difference and some actor stuff
+//to decide can actor walk through that sector or no
+protected bool is_sector_passable(node_base representation = null, actor by = null, bool debug = false) const
+{
+    if(!representation)
+    {
+        console.printf("no representation");
+        return false;
+    }
+
+    if(!by && debug == false)
+    {
+        console.printf("no actor");
+        return false;
+    }
+
+    uint internal_sector_number = neighborn_nodes.find(representation);
+
+    //is it actually neighborn sector
+    if(internal_sector_number >= neighborn_nodes.size() )
+        return false;
+
+    bool movable_sector, zero_ceiling, too_small_gap, cant_walk;
+
+    double self_floor = own_sector.CenterFloor();
+    double self_ceiling = own_sector.CenterCeiling();
+
+    double other_floor = node_base(representation).get_sector().CenterFloor();
+    double other_ceiling = node_base(representation).get_sector().CenterCeiling();
+
+    //if ceiling/floor of one sector higher/lower than floor/ceiling of other sector 
+    if( (node_base(self).movable_sector != true && node_base(representation).movable_sector != true) &&
+        (self_floor >= other_ceiling || other_floor >= self_ceiling || other_floor >= other_ceiling || other_ceiling <= other_floor) )
+    {
+        //still need check is there are any special on line between this sectors
+        if(boundary_lines[internal_sector_number].special > 0)
+        {
+            //doom line special maptype too primitive and it automatically apply to line backsector
+            //so make assumption it is correct special true here
+            if(level.maptype == MAPTYPE_DOOM)
+            {
+                node_base(representation).movable_sector = true;
+                movable_sector = true;
+            }
+            
+            //hexen more complicated and it use line args[0]
+            //to define sector tag which are activates by this
+            //unfortunately it uses tags even if activeting sector located on the line backside
+            else if(level.maptype == MAPTYPE_HEXEN)
+            {
+                if(boundary_lines[internal_sector_number].args[0] > 0)
+                {
+                    //so try find this sector activation line in precomputed array of "line which activate sector(s) by its tag"
+                    if(path_algorithm(all_graph_list).sector_to_line_special(node_base(representation).get_sector(), true )  != null)
+                    {
+                        //so assumption was correct
+                        node_base(representation).movable_sector = true;
+                        movable_sector = true;
+                    }
+
+                    //else, its acs/zscript script which do so
+                    else
+                        return false;
+                }
+            }
+            
+            //in udmf usually "args[0] > 0" means sector tag
+            //also, args[1] must be greater than zero, because it usually define sector speed
+            else if(level.maptype == MAPTYPE_UDMF)
+            {
+                //args[0] means activate backside sector
+                if(boundary_lines[internal_sector_number].args[0] == 0 && boundary_lines[internal_sector_number].args[1] > 0)
+                {
+                    node_base(representation).movable_sector = true;
+                    movable_sector = true;
+                }
+                
+                else if(boundary_lines[internal_sector_number].args[0] > 0 && boundary_lines[internal_sector_number].args[1] > 0)
+                {
+                    //so try find this sector activation line in precomputed array of "line which activate sector(s) by its tag"
+                    if(path_algorithm(all_graph_list).sector_to_line_special(node_base(representation).get_sector(), true )  != null)
+                    {
+                        //sector change height by some line
+                        //it just point here that this is possible
+                        //without explictly definig what exactly line, what activation type, etc
+                        node_base(representation).movable_sector = true;
+                        movable_sector = true;
+                    }
+
+                    //else, its acs/zscript script which do so
+                    else
+                        return false;
+                }
+            }
+        }
+
+        //probably sector have some specific activation logic like a_bossdeath
+        else
+            return false;
+    }
+
+
+    //check gap height between sectors celing/floor and actor height
+    if(debug == false)
+    {
+        //if self or other node is not a lift
+        if(node_base(self).movable_sector == false && node_base(representation).movable_sector == false)
+        {
+            if( (abs(other_ceiling - self_floor) < by.height || abs(self_ceiling - other_floor) < by.height) )
+            {
+                //gap between sectors floor and ceiling too smal to fit actor
+                console.printf("floor-ceiling smaller than height");
+                return false;
+            }
+
+            //check sectors floor height differences here, if monster are not flying
+            if(by.bfloat == false)
+            {
+                //we move from "self" sector to "another"
+                if(self_floor > other_floor)
+                {
+                    if(abs(self_floor - other_floor) > by.MaxDropOffHeight)
+                        //cant jump down
+                        return false;
+                }
+                
+                if(self_floor <= other_floor)
+                {
+                    if(abs(self_floor - other_floor) > by.MaxStepHeight)
+                        //cant climb up
+                        return false;
+                }
+            }
+        }
+    }
+
+    //all ok, monster can fit in this sector
+    return true;
+}
+
+//return three bools first is line passable by someone
+//second is line have some special
+//third is that special activate backside line sector
+protected bool, bool, bool is_line_passable(line freehand_drawing = null, actor by = null, bool debug = false) const
+{
+    bool first, third, second;
+
+    first = second = third = false;
+    
+    //if nothing to check
+    if(!freehand_drawing || (!by && debug != true) )
+        return false, false, false;
+
+    //if line is too short to monster to fit in it, return here
+    //4 because diamether = radius * 2 -> we need squared diamether -> diamether ^ 2 = radius ^ 2 * (2 ^ 2)
+    if(vector_length_squared( freehand_drawing.delta ) < (by.radius * by.radius * 4) )
+        return false, false, false;
+
+    //if line dont block at all
+    if(!(freehand_drawing.flags & line.ML_BLOCKING) 
+    && !(freehand_drawing.flags & line.ML_BLOCKMONSTERS)
+    && !(freehand_drawing.flags & line.ML_BLOCKEVERYTHING) )
+    {
+        //we still need check one last thing
+        if( (by && by.bFLOAT == true) || debug == true)
+        {
+            if(!(freehand_drawing.flags & line.ML_BLOCK_FLOATERS) )
+            {
+                first = true;
+            }
+            
+            else
+                first = false;
+        }
+
+        else
+            first = true;
+    }
+    
+    else
+        first = false;
+
+    //line block monster, return now since we have no use for it
+    //debug returns now, since it dont use actor
+    if(first == false || debug == true)
+        return first, second, third;
+
+
+    //if line is good, check is it have ANY special on it
+    if( freehand_drawing.special > 0 )
+    {
+        second = true;
+
+        //and now check is it activate sector on the backside
+        //usually first argument is a tag and if it equal to zero
+        //it mean "activate backside sector" or "do nothing" in some cases
+        if(freehand_drawing.args[0] == 0)
+            third = true;
+    }
+    return first, second, third;
+}
+
+protected bool check_connectivity_to(node_base point_in_question = null) const
+{
+    if(point_in_question)
+    {
+        if(get_node_group_id() == node_base(point_in_question).get_node_group_id() )
+            return true;
+    }
+    return false;
+}
+
+
+
+
+
+//in future here would be more functions and checks
+private actor test;
+
+override void tick()
+{
+    processed = false;
+    if( (level.totaltime % performance_counter) == 0)
+    {
+        path_cost = double.infinity;
+        if(neighborn_nodes.size() <= 0)
+        {
+            find_neighborns();
+        }
+
+        find_center();
+       
+        if(sector_position_debug && test == null)
+        {
+            test = actor.spawn("bobonus", get_center() );
+            bobonus(test).i = get_ID();
+
+            if(test.cursector == own_sector)
+            {
+                bobonus(test).right_sector = true;
+            }
+        }
+    }
+}
+
+
+}

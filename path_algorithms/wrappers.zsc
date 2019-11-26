@@ -1,0 +1,45 @@
+class array_wrapper
+{
+    array<node_base> path;
+
+    array<line> path_lines;
+    //dismantle node route into more detailed vector route
+    void node_to_lines()
+    {
+        for(uint i = 0; i < path.size()-1; i++)
+        {
+            path_lines.push(node_base(path[i]).line_between_sectors(node_base(path[i+1]) ) );
+
+        }
+    }
+}
+
+class vector_wrapper
+{
+    //because vector can be described as "arrow pointing from ... to ..."
+    vector3 arrow;
+}
+
+class vector_array_wrapper
+{
+    array<vector_wrapper> vertices;
+}
+
+class special_line_between_sectors
+{
+    array<line> spec_lines;
+    array<sector> spec_sectors;
+}
+
+class line_array_wrapper
+{
+    array<line> lines_array; 
+}
+
+class line_wrapper
+{
+    line l;
+    vertex v1, v2;
+
+    bool line_processed, v1_processed, v2_processed;
+}

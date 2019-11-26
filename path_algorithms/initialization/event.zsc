@@ -1,0 +1,256 @@
+class path_algorithm : eventhandler
+{
+//graph of entire level
+private array<node_base> level_graph;
+
+//put here all lines which have special > 0 and args[0] > 0
+private array<special_line_between_sectors> distant_activators;
+
+//return node by its number in node array
+node_base get_nav_num(int i) const
+{
+    if(i < level_graph.size() )
+        return (node_base)(level_graph[i]);
+    else
+        return null;
+}
+
+//return amount of nodes
+uint graph_size() const
+{
+    return level_graph.size();
+}
+
+//as function say
+node_base sector_to_node(sector polygon)  const
+{
+    for(uint i = 0; i < Level.Sectors.Size(); i++)
+    {
+        if(Level.Sectors[i] == polygon)
+        {
+            return (node_base)(level_graph[i]); break;
+        }
+    }
+    return null;
+}
+
+///assign sector/node to node/sector
+private void init_level_graph()
+{
+    for(int i = 0; i < Level.Sectors.Size(); i++)
+    {
+        thinker nod = new("node_base").init(Level.Sectors[i], self);
+        level_graph.push( (node_base)(nod) );
+    }
+}
+
+sector node_to_sector(thinker node) const
+{
+    return node_base(node).get_sector();
+}
+
+//collect all lines which have special on self, but have args[0] =/= 0
+//it means, in most cases, it activate some distant sector (not sector on back side of a line) 
+private void collect_special_line_sector() const
+{
+    for(uint i = 0; i < level.lines.size(); i++)
+    {
+        if(level.lines[i].special > 0)
+        {
+            //usually args[0] represent sector tag and args[1] speed, so
+            //I make a bold assumption that this is correct for all cases
+            if(level.lines[i].args[0] > 0 && level.lines[i].args[1] > 0)
+            {
+                let pair = special_line_between_sectors(new("special_line_between_sectors"));
+
+                line a = level.lines[i];
+                pair.spec_lines.push( a );
+
+                SectorTagIterator tagger = SectorTagIterator.create(level.lines[i].args[0]);
+                uint sector_number = tagger.Next();
+                uint prev = 0;
+
+                while(prev != sector_number)
+                {
+                    if(sector_number >= 0 && sector_number < level.sectors.size() )
+                    {
+                        sector a = level.sectors[sector_number];
+                        pair.spec_sectors.push(a);
+                    }
+                    prev = sector_number;
+                }
+
+                distant_activators.push(pair);
+            }
+        }
+    }
+
+    //check, maybe there are several lines which activate same sectors
+    //if so, combine them in one "pair" 
+    if(distant_activators.size() > 0)
+    {
+        //for every pair on array
+        for(uint i = 0; i < distant_activators.size(); i++)
+        {
+            let pair = special_line_between_sectors(distant_activators[i]);
+            
+            //and for every next pair after previous
+            for(uint j = i + 1; j < distant_activators.size(); j++)
+            {
+                let another_pair = special_line_between_sectors(distant_activators[j]);
+
+                if(another_pair)
+                {
+                    bool full_match = true;
+                    
+                    //and for every sector in array of sectors in first pair
+                    for(uint k = 0; k < pair.spec_sectors.size(); k++)
+                    {
+                        //just to be sure
+                        if( !pair.spec_sectors[k] || !another_pair.spec_sectors[k])
+                        {
+                            full_match = false;
+                            return;
+                        }    
+
+                        //check is sectors equal to each other
+                        if( pair.spec_sectors.find(another_pair.spec_sectors[k]) < pair.spec_sectors.size() )
+                        {
+                            continue;
+                        }
+                        else
+                        {
+                            full_match = false;
+                            return;
+                        }    
+                    }
+
+                    if(full_match)
+                    {
+                        //copy lines content from one pair to another
+                        for(uint k = 0; k < another_pair.spec_lines.size(); k++)
+                        {
+                            pair.spec_lines.push(another_pair.spec_lines[k]);
+                        }
+
+                        //and delete copied pair
+                        distant_activators.delete(j);
+                    }
+                }
+            }
+        }
+    }
+}
+
+//return line(s) which after activation change sectors in question height
+special_line_between_sectors sector_to_line_special(sector polygon = null, bool just_test = false) const
+{
+    if(polygon)
+    {
+        if(distant_activators.size() > 0)
+        {
+            uint index = 0;
+            for(uint i = 0; i < distant_activators.size(); i++)
+            {
+                if(special_line_between_sectors(distant_activators[i]).spec_sectors.find(polygon) < special_line_between_sectors(distant_activators[i]).spec_sectors.size() )
+                {
+                    index = i;
+                    break;
+                }
+            }
+
+            if(index > 0)
+            {
+                let container = special_line_between_sectors(new("special_line_between_sectors"));
+
+                if(just_test)
+                    return container;
+
+                container.spec_lines.copy(special_line_between_sectors(distant_activators[index]).spec_lines );
+
+                return container;
+            }
+        }
+    }
+    return null;
+}
+
+override void WorldLoaded(WorldEvent e) 
+{
+    //create graph
+    init_level_graph();
+
+    //find all lines with special which activate not the backside sector(s) 
+    collect_special_line_sector();
+
+    //to reduce time of checking is target node in same graph as calling
+    //without it algoritm can go to inf. loop
+    //i.e. check level for it "piecesnes"
+    //and connect all node in list, which represent corresponding "piece" of a level
+    array_wrapper full_graph = new("array_wrapper");
+    node_initializator support = new("node_initializator");
+
+    array_wrapper(full_graph).path.Copy(level_graph);
+    node_initializator(support).init(full_graph);
+}
+
+
+
+
+//all thinkers which calls find path function and other stuff
+private array<pathfinding_thinker> monsters_gps;
+
+override void Worldthingspawned(WorldEvent e)
+{
+    if(e.thing.bismonster == true)
+    {
+        pathfinding_thinker t = pathfinding_thinker(new("pathfinding_thinker") );
+        pathfinding_thinker(new("pathfinding_thinker") ).init(e.thing, self);
+        monsters_gps.push(t);
+    }
+} 
+
+
+}
+
+
+
+
+
+
+
+class bobonus : healthbonus
+{
+int i;
+
+bool right_sector;
+
+override void touch (actor toucher)
+{
+    console.printf("sector number %i", i);
+    if(right_sector)
+        console.printf("in right sector");
+    else   
+        console.printf("in wrong sector");
+        
+   
+    super.touch(toucher);
+}
+
+}
+
+class caco : actor
+{
+default
+{
+   // +float
+   // +nogravity
+}
+states
+{
+    spawn:
+        head a 1 {}
+    loop;
+}
+}
+

@@ -1,0 +1,351 @@
+
+
+class pathfinding_thinker : thinker
+{
+//monster
+private actor blind_kitten;
+private actor pseudotarget;
+
+private linetracer sight_check;
+
+
+private eventhandler nodes;
+
+private array_wrapper path;
+
+private bool have_path, reach_target, cant_move_out, shooting;
+
+//update path for every 10 second
+private uint update_timer;
+
+void init(actor a, eventhandler e)
+{
+    blind_kitten = a;
+    nodes = e;
+    sight_check = new("target_checker");
+    update_timer = 0;
+}
+
+private bool is_real_target()
+{
+    if(blind_kitten)
+    {
+        if(blind_kitten.target != null && blind_kitten.target != pseudotarget )
+            return true;
+    
+        else    
+            return false;
+    }
+    return false;
+}
+
+private void rearrange_target()
+{
+    if(blind_kitten && pseudotarget)
+    {
+        pseudotarget.target = blind_kitten.target;
+        pseudotarget.master = blind_kitten;
+
+        blind_kitten.target = pseudotarget;
+        blind_kitten.lastheard = pseudotarget;
+        blind_kitten.lastenemy = pseudotarget;
+
+        pseudotarget.setorigin(pseudotarget.target.pos, false);
+    }
+}
+
+//create path from A to B
+private void get_path()
+{
+    if(blind_kitten && pseudotarget)
+    {
+        node_base cur_node = path_algorithm(nodes).sector_to_node(blind_kitten.cursector);
+        node_base targ_node = path_algorithm(nodes).sector_to_node(pseudotarget.target.cursector);
+        
+        //console.printf("id is %i and %i", node_base(cur_node).get_id(), node_base(targ_node).get_id() );
+        
+        if(cur_node && targ_node) 
+            path = node_base(cur_node).dj_search(cur_node, targ_node, blind_kitten);
+
+        else
+            console.printf("some node does not exist");
+    }
+}
+
+//check is line is blocking
+private bool is_line_blocking(line l)
+{
+    if(l)
+    {
+        if( (l.flags & l.ML_BLOCKING)
+        || (l.flags &  line.ML_BLOCKMONSTERS)
+        || (l.flags & line.ML_BLOCKEVERYTHING)
+        || !(l.flags & line.ML_TWOSIDED) )
+            return true;
+    }
+    return false;
+}
+
+
+
+//if monster bump into impassable line
+//rotate it in "correct" direction (closer to destination node while staying in the same sector)
+private void rotate_kitten(line l)
+{
+    if(l)
+    {
+        vector2 offset;
+        
+        double ang;
+
+        if(l.delta.x == 0)
+            offset = (0, 1);
+
+        else
+        {
+            ang = atan(l.delta.y/l.delta.x);
+
+            if(ang == 90 || ang == -90)
+                offset = (0, 1);
+
+            else
+                offset = (cos(ang), sin(ang) );
+        }
+
+        vector2 a, b;
+
+        if(ang > 90 || ang < -90)
+        {
+            a = (l.v1.p) + offset;
+            b = (l.v2.p) - offset;
+        }
+
+        else
+        {
+            a = (l.v1.p) - offset;
+            b = (l.v2.p) + offset;
+        }
+
+        actor.spawn("healthbonus", pos: (a, 0));
+        actor.spawn("healthbonus", pos: (b, 0));
+
+//        if(level.PointInSector(a) == blind_kitten.cursector)
+//            {}
+//        if(level.PointInSector(b) == blind_kitten.cursector)
+//            {}
+    }
+}
+
+//what function name says
+private bool is_actual_target_in_fov()
+{
+    vector3 hit_dir = level.vec3diff(blind_kitten.pos, pseudotarget.target.pos);
+
+    target_checker(sight_check).actual_target = pseudotarget.target;
+    sight_check.trace(blind_kitten.pos + (0, 0, blind_kitten.height / 2), blind_kitten.cursector, hit_dir, 8192, TRACE_HitSky);
+
+    //yes, proceed to shooting
+    if(target_checker(sight_check).success == true)
+        return true;
+
+    //go back to default doom monsters buisenes, like dancing on spawn spot
+    else
+        return false;
+}
+
+override void tick()
+{
+    if(!pseudotarget)
+    {
+        pseudotarget = actor.spawn("blind_kitten_target", (double.infinity, double.infinity, double.infinity) );
+    }
+
+    if(blind_kitten && blind_kitten.target)
+    {
+        if(shooting == false)
+        {
+            if(is_real_target() == true)
+            {
+                rearrange_target();
+            }
+            
+            //monster target already changed to mod related target
+            //if it location dont equal to monster location, and if there are no path to it
+            if( (blind_kitten.target.cursector != blind_kitten.cursector && path == null))
+            {
+                get_path();
+            }
+            //or 5 second pass and target, probably, change it sector
+            if( update_timer > 175)
+            {
+                get_path();
+                update_timer = 0;
+            }
+
+            //follow path here
+            if( path )
+            {
+                if( array_wrapper(path).path.size() > 0)
+                {
+                    uint last_element = array_wrapper(path).path.size() - 1;
+
+                    pseudotarget.setorigin( node_base(array_wrapper(path).path[last_element]).get_center(), false );
+
+                    //destroy last node in array if it location equal to monster
+                    //and there are still some nodes to follow
+                    if(blind_kitten.cursector == array_wrapper(path).path[last_element].get_sector() )
+                    {
+                        array_wrapper(path).path.pop();
+                    }
+
+                    //check blocking here
+                    if(blind_kitten.BlockingLine != null)
+                    {
+                        if(array_wrapper(path).path_lines.size() > 0)
+                        {
+                            if(blind_kitten.BlockingLine == array_wrapper(path).path_lines[array_wrapper(path).path_lines.size() - 1] )
+                            {
+                                array_wrapper(path).path_lines.pop();
+                            }
+                        }
+
+                        //dont work for SOME REASON!!!!!!!!!!!!!11111 AAAAAAAAAAAAAAAAAAAAAAAAAAAA
+                        //function on c++ side cant be forced to activate line without some mandatory checks
+                        //which would fails because monster is not player/dont have key/etc. etc. etc.
+                        //my disappointment is immeasurable and my day is ruined :(
+                        if(blind_kitten.BlockingLine.activation > 0)
+                            blind_kitten.BlockingLine.Activate(blind_kitten, 0, SPAC_MUse);
+
+                        //if(is_line_blocking(blind_kitten.BlockingLine) == true)
+                        {
+                            console.printf("1");
+                            rotate_kitten(blind_kitten.BlockingLine);
+                            blind_kitten.BlockingLine = null;
+                        }
+                    }
+                }
+                else
+                    path.destroy();
+            }
+    
+            if(!path)
+            {
+                blind_kitten.target = pseudotarget.target;
+            }
+        }
+
+        //monster want shoot someone, do some technical checks here to allow/prevent it
+        if(shooting == true || blind_kitten.instatesequence(blind_kitten.curstate, blind_kitten.findstate("missile") ) )
+        {
+            //init shooting sequence
+            if(shooting == false)
+            {
+                //check is there are line of sight with monster target
+                //yes, proceed to shooting
+                if(is_actual_target_in_fov() == true)
+                {
+                    blind_kitten.target = pseudotarget.target;
+                    blind_kitten.a_facetarget();
+                    shooting = true;
+                }
+                //otherwise, target behind wall, go back to folowing path
+                else
+                {
+                    blind_kitten.setstate(blind_kitten.findstate("see"));
+                }
+            }
+            
+            //already shooting
+            //if next state is see state, i.e. it already stop shooting
+            if (blind_kitten.instatesequence(blind_kitten.curstate.nextstate, blind_kitten.findstate("see") ) )
+            {
+                //if target alive and cvar say continue shoot
+                if(blind_kitten.target.bkilled == false && monster_constant_shooting == true)
+                {
+                    //if target in fov of course
+                    if(is_actual_target_in_fov() == false)
+                    {
+                        blind_kitten.target = pseudotarget;
+                        shooting = false;
+                    }
+
+                    else
+                        blind_kitten.setstatelabel("missile");
+                }
+            }
+        }
+    }
+
+    //increase timer
+    update_timer ++;
+
+    //obvious
+    if(!blind_kitten)
+    {
+        pseudotarget.destroy();
+        self.destroy();
+    }
+}
+
+}
+
+
+
+
+
+class blind_kitten_target : actor
+{
+
+default
+{
+    +noclip
+    +nointeraction
+    +nosector
+    +shootable
+    height 10;
+    radius 10;
+}
+
+states
+{
+    spawn:
+        tnt1 a -1;
+    stop;
+}
+
+}
+
+
+class target_checker : LineTracer
+{
+Actor actual_target;
+bool success;
+
+override ETraceStatus TraceCallback()
+{
+    if (Results.HitType == TRACE_HitWall)
+    {
+        if (Results.Tier == TIER_Middle)
+        {
+            if (Results.HitLine.Flags & Line.ML_TWOSIDED)
+            {
+                return TRACE_Skip;
+            }
+            return TRACE_Stop; 
+        }
+    }
+
+    if (Results.HitType == TRACE_HitActor)
+    {
+        success = false;
+        if (Results.HitActor == actual_target)
+        {
+            success = true;
+            return TRACE_Stop;
+        }
+        return TRACE_skip;
+    }
+    return TRACE_Stop;
+}
+
+}

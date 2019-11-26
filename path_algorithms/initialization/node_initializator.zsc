@@ -1,0 +1,255 @@
+class node_initializator : node_base
+{
+private array_wrapper graph_copy;
+
+node_initializator init (array_wrapper data)
+{
+    graph_copy = data;
+    return self;
+}
+//array of nodes which already grouped together goes here
+//because array of arrays with cutom data when?
+private array<array_wrapper> grouped_nodes;
+
+private void establish_connectivity()
+{
+    if(graph_copy)
+    {
+        let all_nodes = array_wrapper(graph_copy);
+
+        uint size = 0;
+
+        //for already processed nodes
+        array<node_base> processed_nodes; processed_nodes.clear();
+
+        //for nodes in processing
+        array<node_base> processing_nodes; processing_nodes.clear();
+ 
+        //for nodes which would be processed in the next step
+        array<node_base> unprocessed_nodes; unprocessed_nodes.clear();
+
+        //we need something to begin with
+        processing_nodes.push(all_nodes.path[size]);
+
+        //precaution, so it wont go into infinity, UNBOUNDED, T R A N S C E N D E N T A L loop
+        while(size < all_nodes.path.size() )
+        {
+            //actually which
+            bool witch = false;
+            
+            while(!witch)
+            {
+                
+                if(processing_nodes.size() <= 0)
+                    processing_nodes.copy(unprocessed_nodes);
+
+                //if even after previous action array stil empty
+                //we out of nodes in group 
+                if(processing_nodes.size() <= 0)
+                {
+                    witch = true;
+                    return;
+                }
+
+                for(uint i = 0; i < processing_nodes.size(); i++)
+                {
+                    if(node_base(processing_nodes[i]).get_processed() == false)
+                    {
+                        node_base(processing_nodes[i]).set_processed();
+
+                        processed_nodes.push(node_base(processing_nodes[i]) );
+
+                        let unmarked = node_base(processing_nodes[i]).get_unmarked_neighborgs();
+
+                        //dont check bools because previous function already do such check
+                        unprocessed_nodes.copy(array_wrapper(unmarked).path);
+                    }
+                }
+
+                processing_nodes.clear();
+                processing_nodes.copy(unprocessed_nodes);
+            }
+
+            //out of unprodcessed nodes
+            //it means level separate on several "locations" which bound together only by teleporters
+            //like e2m1 map
+            //currently dynamic/static portals are not handled by this
+            if(size < all_nodes.path.size() )
+            {
+                //now, so that group number wont sets up to default value of unitialized variables, zero
+                size++;
+
+                for(uint i = 0; i < processed_nodes.size(); i++)
+                {
+                    processed_nodes[i].set_group_id(size);
+                }
+
+                //copy already existing group into "array" and store it for future
+                array_wrapper new_group = array_wrapper(new("array_wrapper") );
+                new_group.path.copy(processed_nodes);
+
+
+                //clear arrays so already grouped nodes dont interfere with non grouped
+                processed_nodes.clear();
+                
+                //push next node from list, i.e. with index 1 for first iteration
+                //do so 
+                processing_nodes.push(all_nodes.path[size]);
+            }
+        }
+
+        //clear all marks
+        //for every node group
+        for(uint i = 0; i < grouped_nodes.size(); i++)
+        {
+            let sub_graph = array_wrapper(grouped_nodes[i]);
+            //and every node in it
+            for(uint j = 0; j < sub_graph.path.size(); j++)
+            {
+                node_base(sub_graph.path[j]).set_unprocessed();
+            }
+        }
+    }
+}
+
+//not actually breakpoint, just node which connect several subgroup of nodes together
+//example, corridor which you face in map01
+//if you "delete" this corridor, you not be able to go into another rooms/another part of a level/finish level
+//basically map13
+private void find_breakpoints()
+{
+    if(grouped_nodes.size() > 0)
+    {
+        //for nodes which have only two neighbors
+        array<node_base> doors; doors.clear();
+        //for nodes which have three neighbors
+        array<node_base> corridors; corridors.clear();
+
+        //for every node group
+        for(uint i = 0; i < grouped_nodes.size(); i++)
+        {
+            let sub_graph = array_wrapper(grouped_nodes[i]);
+            //and every node in it
+            for(uint j = 0; j < sub_graph.path.size(); j++)
+            {
+                let single_node = node_base(sub_graph.path[j]);
+
+                if(single_node.count_neigh() == 2)
+                {
+                    doors.push(single_node);
+                }
+
+                else if(single_node.count_neigh() == 3)
+                {
+                    corridors.push(single_node);
+                }
+            }
+        }
+
+
+    }
+}
+
+
+//find all graph edges, then pick edge with smallest length
+//keep doing that until
+//1. edge dont create cycle (i.e. any polygon, if you make a graphical representation of a graph)
+//2. there are free edges
+private void spanning_tree_kruskal()
+{
+    array<edge_vertex_pair> edges; edges.clear();
+
+    if(graph_copy)
+    {
+        //copy of a 
+        array <node_base> new_copy;
+    }
+}
+
+
+//find node which have only one neighbor
+//then track down chain of which begins from that node
+///until first node which have mode than 2 neighbors
+//one neighbor is node which leads to (or is a) deadlock, another to somewhere
+private void find_deadlocks()
+{
+    if(grouped_nodes.size() > 0)
+    {
+        array<node_base> dead_ends; dead_ends.clear();
+
+        //for every node group
+        for(uint i = 0; i < grouped_nodes.size(); i++)
+        {
+            let sub_graph = array_wrapper(grouped_nodes[i]);
+            //and every node in it
+            for(uint j = 0; j < sub_graph.path.size(); j++)
+            {
+                let single_node = node_base(sub_graph.path[j]);
+
+                
+            }
+        }
+    }
+}
+
+
+//make nodes updates information about neighbors only once in seconds instead of 35 times in seconds
+private void set_performance()
+{
+    if(graph_copy)
+    {
+        let all_nodes = array_wrapper(graph_copy);
+
+        if(all_nodes.path.size() > TICRATE)
+        {
+            uint count = all_nodes.path.size() / TICRATE;
+
+            if(count > 0)
+            {
+                uint perf = 1;
+
+                for(uint i = 0; i < all_nodes.path.size(); i++)
+                {
+                    node_base(all_nodes.path[i]).performance_counter = perf;
+                    if(i > (count * perf) )
+                    {
+                        perf++;
+                    }
+                }
+            }
+        }
+    }
+}
+
+
+
+
+
+//actually happens one time on a map
+//just dont want to bother world tick
+override void tick()
+{
+    //delay so all nodes can find it neighbors
+    if(Level.time > 1 && level.time < 3)
+    {
+        establish_connectivity();
+        set_performance();
+    }
+    if(level.time > 5)
+    {
+        graph_copy.destroy(); 
+        self.destroy();
+    }
+}
+
+}
+
+
+//basically c++ pair template class
+//because ZSCRIPT DYNAMIC ARRAY OF ARRAYS WHEN
+class edge_vertex_pair
+{
+    node_base n1;
+    node_base n2;
+    double length_squared;
+}

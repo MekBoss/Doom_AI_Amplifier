@@ -1,0 +1,98 @@
+/*
+hi, and velcome to my wonderful and playful AI library
+I would be you guide in comment blocks, follow me :)
+
+released under mit/x11 license
+In short (stallman become angry) you can use it if you not an asshole
+*/
+
+version "3.7.2"
+
+//zscript cant return/pass arrays, vectors, etc. fix it here
+#include "path_algorithms/wrappers.zsc"
+
+//sub node definition
+//required fo specific sectors
+#include "path_algorithms/sub_node.zsc"
+//base node definition
+#include "path_algorithms/node_base.zsc"
+
+
+//event contain all level graph and initialize graph creation and some other initializations
+#include "path_algorithms/initialization/event.zsc"
+//set technical stuff, like connectivity, id, spanning tree, performance, etc
+#include "path_algorithms/initialization/node_initializator.zsc"
+
+//dijicstra algorithm, dj for short
+#include "path_algorithms/algorithms/dj_alg/dj.zsc"
+//flood
+#include "path_algorithms/algorithms/flood/flood.zsc"
+
+
+//use black pointers magic to apply pathfinding script to all possible monsters from doom mods
+//can cause SERIOUS lags if used on slaughtermaps or maps with enormous amount of enemies
+#include "path_algorithms/guide.zsc"
+
+
+/*
+line flags
+if( !(insert line here.flags & line.ML_BLOCKING) 
+&& !(insert line here.flags & line.ML_BLOCKMONSTERS)
+&& !(insert line here.flags & line.ML_BLOCKEVERYTHING)
+&& !(insert line here.flags & line.ML_BLOCK_FLOATERS)
+&& (insert line here.flags & line.ML_REPEAT_SPECIAL)
+
+
+is line usable
+if (someline.activation == SPAC_MUse  || someline.activation == SPAC_MPush || someline.activation == SPAC_UseBack  )
+
+check what line activate
+line.special == (anything from https://zdoom.org/wiki/Action_specials
+and then
+line.args[0-4] for additional info for line.special function 
+*/
+
+
+class p : pistol
+{
+    default
+    {
+		Weapon.SlotNumber 1;
+        Weapon.SlotPriority 32767;
+    }
+
+states
+{
+    fire:
+        pist a 100
+        {
+            liner as = new("liner");
+
+            actor a = a_fireprojectile("baronball");
+            
+            as.trace(a.pos, a.cursector, a.vel, 8192, TRACE_HitSky);
+
+            //console.printf("x %f, y %f", as.l.delta.x, as.l.delta.y); 
+
+        }
+
+    goto ready;
+}
+
+}
+
+
+class liner : LineTracer
+{
+line l;
+
+override ETraceStatus TraceCallback()
+{
+    if (Results.HitType == TRACE_HitWall)
+    {
+        l = Results.HitLine;
+    }
+    return TRACE_Stop;
+}
+
+}

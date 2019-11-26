@@ -1,0 +1,5 @@
+server noarchive bool psa_dj_debug = false;//dijicstra
+
+server noarchive bool sector_position_debug = false;
+
+server noarchive bool monster_constant_shooting = true;
