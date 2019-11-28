@@ -94,46 +94,147 @@ private void rotate_kitten(line l)
 {
     if(l)
     {
-        vector2 offset;
-        
-        double ang;
+        vector2 a, b, midline, direction, offset;
 
-        if(l.delta.x == 0)
-            offset = (0, 1);
+        midline = (l.v1.p + l.v2.p) / 2;
 
+        direction = l.v1.p - midline;
+        offset = direction;
+        //get almost unit vector but in much more cheaper way
+        if(abs(offset.x) > abs(offset.y) || abs(offset.x) == abs(offset.y) )
+            offset /= abs(offset.x);
         else
-        {
-            ang = atan(l.delta.y/l.delta.x);
+            offset /= abs(offset.y);
 
-            if(ang == 90 || ang == -90)
-                offset = (0, 1);
+        a = midline + (direction + offset);
 
-            else
-                offset = (cos(ang), sin(ang) );
-        }
-
-        vector2 a, b;
-
-        if(ang > 90 || ang < -90)
-        {
-            a = (l.v1.p) + offset;
-            b = (l.v2.p) - offset;
-        }
-
-        else
-        {
-            a = (l.v1.p) - offset;
-            b = (l.v2.p) + offset;
-        }
+        b = midline - (direction + offset);
 
         actor.spawn("healthbonus", pos: (a, 0));
         actor.spawn("healthbonus", pos: (b, 0));
 
-//        if(level.PointInSector(a) == blind_kitten.cursector)
-//            {}
-//        if(level.PointInSector(b) == blind_kitten.cursector)
-//            {}
+        //if both points in the same sector
+        if(level.PointInSector(a) == blind_kitten.cursector && level.PointInSector(b) == blind_kitten.cursector)
+        {
+            vector2 aa = level.vec2diff(a, pseudotarget.pos.xy);
+            vector2 bb = level.vec2diff(b, pseudotarget.pos.xy);
+
+            double a_dis = aa dot aa;
+            double b_dis = bb dot bb;
+
+            if(a_dis == b_dis)
+            {
+                //repeat calculation slightly changing vectors
+                aa = level.vec2diff(a, pseudotarget.pos.xy + (1, 1) );
+                bb = level.vec2diff(b, pseudotarget.pos.xy + (1, 1) );
+
+                a_dis = aa dot aa;
+                b_dis = bb dot bb;
+
+            }
+
+            else if( a_dis < b_dis )
+            {
+                if(direction.x == 0)
+                {
+                    if( direction.y > 0 )
+                        blind_kitten.angle = 90;
+                    else
+                        blind_kitten.angle = -90;
+                }
+                else
+                    blind_kitten.angle = atan(direction.y / direction.x);
+            }
+
+            else
+            {
+                if(direction.x == 0)
+                {
+                    if( direction.y > 0 )
+                        blind_kitten.angle = -90;
+                    else
+                        blind_kitten.angle = 90;
+                }
+                else
+                    blind_kitten.angle = atan( - direction.y / - direction.x);
+            }
+        }
+
+        else if (level.PointInSector(a) == blind_kitten.cursector)
+        {
+            if(direction.x == 0)
+            {
+                if( direction.y > 0 )
+                    blind_kitten.angle = 90;
+                else
+                    blind_kitten.angle = -90;
+            }
+            else
+                blind_kitten.angle = atan(direction.y / direction.x);
+        }
+
+        else
+        {
+            if(direction.x == 0)
+            {
+                if( direction.y > 0 )
+                    blind_kitten.angle = -90;
+                else
+                    blind_kitten.angle = 90;
+            }
+            else
+                blind_kitten.angle = atan( - direction.y / - direction.x);
+        }
     }
+}
+
+//check is actor hit/near some line
+private void check_line_crashing(actor it)
+{
+    if(!it)
+        it = blind_kitten;
+    
+    for(uint i = 0; i < it.cursector.lines.size(); i++)
+    {
+        let l = it.cursector.lines[i];
+
+        if(is_inside_line_bbox(it, l) )
+        {
+            //check is line actually block actor
+            if( is_line_blocking(l) )
+            {
+                //then rotate monster to vertex which closer to destination node
+                rotate_kitten(l);
+            }
+        }
+    }
+}
+
+//check line bbox and return true if actor, near/in it
+private bool is_inside_line_bbox(actor t, line l)
+{
+    //is inside line bounding rectangle
+    //radius and -5 to extend bbox of vertical/horizontal lines
+    //which have zero width/height of bbox
+    if(t.pos.x > l.bbox[0] - t.radius - 5 && t.pos.x < l.bbox[1] - t.radius - 5 )
+    {
+        if(t.pos.y > l.bbox[2] - t.radius - 5 && t.pos.y < l.bbox[3] - t.radius - 5 )
+        {
+            //yes
+            return true;
+        }
+    }
+
+    //same, but now with +
+    if(t.pos.x > l.bbox[0] + t.radius + 5 && t.pos.x < l.bbox[1] + t.radius + 5 )
+    {
+        if(t.pos.y > l.bbox[2] + t.radius + 5 && t.pos.y < l.bbox[3] + t.radius + 5 )
+        {
+            //yes
+            return true;
+        }
+    }
+    return false;
 }
 
 //what function name says
@@ -148,7 +249,7 @@ private bool is_actual_target_in_fov()
     if(target_checker(sight_check).success == true)
         return true;
 
-    //go back to default doom monsters buisenes, like dancing on spawn spot
+    //go back to default monsters buisenes, like dancing on spawn spot
     else
         return false;
 }
@@ -160,7 +261,8 @@ override void tick()
         pseudotarget = actor.spawn("blind_kitten_target", (double.infinity, double.infinity, double.infinity) );
     }
 
-    if(blind_kitten && blind_kitten.target)
+    //if alive, in some term, and have target
+    if(blind_kitten && (blind_kitten.health > 0 || blind_kitten.bkilled == false || blind_kitten.bICECORPSE == false) && blind_kitten.target)
     {
         if(shooting == false)
         {
@@ -201,14 +303,6 @@ override void tick()
                     //check blocking here
                     if(blind_kitten.BlockingLine != null)
                     {
-                        if(array_wrapper(path).path_lines.size() > 0)
-                        {
-                            if(blind_kitten.BlockingLine == array_wrapper(path).path_lines[array_wrapper(path).path_lines.size() - 1] )
-                            {
-                                array_wrapper(path).path_lines.pop();
-                            }
-                        }
-
                         //dont work for SOME REASON!!!!!!!!!!!!!11111 AAAAAAAAAAAAAAAAAAAAAAAAAAAA
                         //function on c++ side cant be forced to activate line without some mandatory checks
                         //which would fails because monster is not player/dont have key/etc. etc. etc.
@@ -216,18 +310,22 @@ override void tick()
                         if(blind_kitten.BlockingLine.activation > 0)
                             blind_kitten.BlockingLine.Activate(blind_kitten, 0, SPAC_MUse);
 
-                        //if(is_line_blocking(blind_kitten.BlockingLine) == true)
+                        check_line_crashing(blind_kitten);
+
+                        if(array_wrapper(path).path_lines.size() > 0)
                         {
-                            console.printf("1");
-                            rotate_kitten(blind_kitten.BlockingLine);
-                            blind_kitten.BlockingLine = null;
+                            if(blind_kitten.BlockingLine == array_wrapper(path).path_lines[array_wrapper(path).path_lines.size() - 1] )
+                            {
+                                array_wrapper(path).path_lines.pop();
+                            }
                         }
                     }
                 }
+                //no points to follow
                 else
                     path.destroy();
-            }
-    
+           }
+
             if(!path)
             {
                 blind_kitten.target = pseudotarget.target;
@@ -235,7 +333,7 @@ override void tick()
         }
 
         //monster want shoot someone, do some technical checks here to allow/prevent it
-        if(shooting == true || blind_kitten.instatesequence(blind_kitten.curstate, blind_kitten.findstate("missile") ) )
+        if(shooting == true || blind_kitten.instatesequence(blind_kitten.curstate, blind_kitten.findstate("missile") ) || blind_kitten.instatesequence(blind_kitten.curstate, blind_kitten.findstate("melee") ) )
         {
             //init shooting sequence
             if(shooting == false)
@@ -244,17 +342,24 @@ override void tick()
                 //yes, proceed to shooting
                 if(is_actual_target_in_fov() == true)
                 {
+                    blind_kitten.meleerange = blind_kitten.default.meleerange;
                     blind_kitten.target = pseudotarget.target;
                     blind_kitten.a_facetarget();
-                    shooting = true;
+                    //shooting = true;
                 }
                 //otherwise, target behind wall, go back to folowing path
+                //by preventing any attack chance
                 else
                 {
+                    blind_kitten.meleerange = double.infinity;
+                    blind_kitten.bJUSTATTACKED = true;
+                    blind_kitten.reactiontime = 16;
                     blind_kitten.setstate(blind_kitten.findstate("see"));
                 }
             }
-            
+/*
+            this make monsters too strong
+
             //already shooting
             //if next state is see state, i.e. it already stop shooting
             if (blind_kitten.instatesequence(blind_kitten.curstate.nextstate, blind_kitten.findstate("see") ) )
@@ -273,6 +378,7 @@ override void tick()
                         blind_kitten.setstatelabel("missile");
                 }
             }
+*/            
         }
     }
 
@@ -284,6 +390,10 @@ override void tick()
     {
         pseudotarget.destroy();
         self.destroy();
+        if(sight_check)
+            sight_check.destroy();
+        if(path)
+            path.destroy();
     }
 }
 
@@ -349,3 +459,4 @@ override ETraceStatus TraceCallback()
 }
 
 }
+

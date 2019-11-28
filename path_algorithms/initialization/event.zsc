@@ -211,6 +211,94 @@ override void Worldthingspawned(WorldEvent e)
 } 
 
 
+override void NetworkProcess(ConsoleEvent e)
+{
+    if(e.name == "line")
+    {
+            FLineTraceData RemoteRay;
+            
+            let player = players [e.Player].mo;
+
+            player.LineTrace(
+               player.angle,
+               2048,
+               player.pitch,
+               offsetz: player.height-12,
+               data: RemoteRay
+            );
+
+        line l;
+
+        if (RemoteRay.HitType == TRACE_HitWall)
+            l = RemoteRay.HitLine;
+
+        if(l)
+        {
+            vector2 a, b, midline, direction, offset;
+
+
+            console.printf("v1 %f %f", l.v1.p.x, l.v1.p.y);
+            console.printf("v2 %f %f", l.v2.p.x, l.v2.p.y);
+
+            console.printf("bbox %f %f %f %f", l.bbox[0],l.bbox[1],l.bbox[2],l.bbox[3]);
+            
+            midline = (l.v1.p + l.v2.p) / 2;
+
+            direction = l.v1.p - midline;
+            offset = direction;
+            //get almost unit vector but in much more cheaper way
+            if(abs(offset.x) > abs(offset.y) )
+                offset /= offset.x;
+            else
+                offset /= offset.y;
+
+            if(abs(offset.x) == abs(offset.y) )
+            {
+                console.printf("offset equals");
+                offset /= offset.x;
+            }
+
+            a = midline + (direction + offset * 30);
+
+            b = midline - (direction + offset * 30);
+
+            actor.spawn("healthbonus", pos: (a, 0));
+            actor.spawn("healthbonus", pos: (b, 0));
+        }
+    }
+
+    if(e.name == "alllines")
+    {
+        for(uint i = 0; i < level.lines.size(); i++)
+        {
+            //let cause error
+            line l = level.lines[i];
+            if(l)
+            {
+                vector2 a, b, midline, direction, offset;
+
+                midline = (l.v1.p + l.v2.p) / 2;
+
+                direction = l.v1.p - midline;
+                offset = direction;
+                //get almost unit vector but in much more cheaper way
+                if(abs(offset.x) > abs(offset.y) || abs(offset.x) == abs(offset.y) )
+                    offset /= abs(offset.x);
+                else
+                    offset /= abs(offset.y);
+
+                a = midline + (direction + offset * 30);
+
+                b = midline - (direction + offset * 30);
+
+                actor.spawn("healthbonus", pos: (a, 0));
+                actor.spawn("healthbonus", pos: (b, 0));
+            } 
+        }
+    }
+}
+
+
 }
 
 

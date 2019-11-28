@@ -102,7 +102,7 @@ array_wrapper, bool dj_search(node_base start, node_base finish, actor walker = 
 
                     //check if we able to go to this sector through line between them
                     //if dont, ignore it for now, probably there are another way
-                    if( is_line_passable( waypoint.line_between_sectors(waypoint_new), walker) == false) 
+                    if( is_line_blocks( waypoint.line_between_sectors(waypoint_new), walker) == false) 
                     {
                         if(psa_dj_debug)
                             console.printf("sector %i unreachable from sector %i, blocked by line", waypoint_new.get_id(), waypoint.get_id() );

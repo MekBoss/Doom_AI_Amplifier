@@ -499,23 +499,17 @@ protected bool is_sector_passable(node_base representation = null, actor by = nu
     return true;
 }
 
-//return three bools first is line passable by someone
-//second is line have some special
-//third is that special activate backside line sector
-protected bool, bool, bool is_line_passable(line freehand_drawing = null, actor by = null, bool debug = false) const
+//check is lin block actor from crossing it
+protected bool is_line_blocks(line freehand_drawing = null, actor by = null, bool debug = false) const
 {
-    bool first, third, second;
-
-    first = second = third = false;
-    
     //if nothing to check
     if(!freehand_drawing || (!by && debug != true) )
-        return false, false, false;
+        return false;
 
     //if line is too short to monster to fit in it, return here
     //4 because diamether = radius * 2 -> we need squared diamether -> diamether ^ 2 = radius ^ 2 * (2 ^ 2)
     if(vector_length_squared( freehand_drawing.delta ) < (by.radius * by.radius * 4) )
-        return false, false, false;
+        return false;
 
     //if line dont block at all
     if(!(freehand_drawing.flags & line.ML_BLOCKING) 
@@ -527,38 +521,19 @@ protected bool, bool, bool is_line_passable(line freehand_drawing = null, actor 
         {
             if(!(freehand_drawing.flags & line.ML_BLOCK_FLOATERS) )
             {
-                first = true;
+                return true;
             }
             
             else
-                first = false;
+                return false;
         }
 
         else
-            first = true;
+            return true;
     }
     
     else
-        first = false;
-
-    //line block monster, return now since we have no use for it
-    //debug returns now, since it dont use actor
-    if(first == false || debug == true)
-        return first, second, third;
-
-
-    //if line is good, check is it have ANY special on it
-    if( freehand_drawing.special > 0 )
-    {
-        second = true;
-
-        //and now check is it activate sector on the backside
-        //usually first argument is a tag and if it equal to zero
-        //it mean "activate backside sector" or "do nothing" in some cases
-        if(freehand_drawing.args[0] == 0)
-            third = true;
-    }
-    return first, second, third;
+        return false;
 }
 
 protected bool check_connectivity_to(node_base point_in_question = null) const
@@ -576,8 +551,7 @@ protected bool check_connectivity_to(node_base point_in_question = null) const
 
 
 //in future here would be more functions and checks
-private actor test;
-
+//probably
 override void tick()
 {
     processed = false;
@@ -591,16 +565,6 @@ override void tick()
 
         find_center();
        
-        if(sector_position_debug && test == null)
-        {
-            test = actor.spawn("bobonus", get_center() );
-            bobonus(test).i = get_ID();
-
-            if(test.cursector == own_sector)
-            {
-                bobonus(test).right_sector = true;
-            }
-        }
     }
 }
 
