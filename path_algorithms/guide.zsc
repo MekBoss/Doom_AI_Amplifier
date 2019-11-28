@@ -54,7 +54,7 @@ private void rearrange_target()
     }
 }
 
-//create path from A to B
+//call "create path from A to B" function
 private void get_path()
 {
     if(blind_kitten && pseudotarget)
@@ -133,7 +133,7 @@ private void rotate_kitten(line l)
 
             }
 
-            else if( a_dis < b_dis )
+            if( a_dis < b_dis )
             {
                 if(direction.x == 0)
                 {
