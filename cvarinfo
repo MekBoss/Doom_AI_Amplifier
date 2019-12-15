@@ -1,3 +1,4 @@
 server noarchive bool psa_dj_debug = false;//dijicstra
-
 server noarchive bool monster_constant_shooting = true;
+
+server bool ai_pathfinding_cvar = true;

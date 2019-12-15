@@ -1,0 +1,12 @@
+OptionMenu "OptionsMenu"
+{
+	Submenu "AI options", "ai_options"
+	StaticText " "
+}
+
+OptionMenu "ai_options"
+{
+    title "AI options"
+    StaticText "Enable pathfinding for monsters"
+    Option "Enable monsters pathfinding", "ai_pathfinding_cvar", "onoff"
+}

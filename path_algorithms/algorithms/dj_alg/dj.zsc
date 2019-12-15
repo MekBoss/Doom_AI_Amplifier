@@ -109,7 +109,7 @@ array_wrapper, bool dj_search(node_base start, node_base finish, actor walker = 
                         continue;
                     }
 
-                    //line let us pass it, but is sector suitable for actor
+                    //line let us pass, but is sector suitable for actor
                     if( waypoint.is_sector_passable(waypoint_new, walker) == false )
                     {
                         if(psa_dj_debug)

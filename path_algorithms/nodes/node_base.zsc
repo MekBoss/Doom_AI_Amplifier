@@ -226,10 +226,25 @@ line line_between_sectors(node_base which = null) const
     {
         uint i = neighborn_nodes.find(which);
 
+        //distance to sector center
+        double dist_to_center = double.infinity;
+        int line_id = -1;
         if(i < neighborn_nodes.size() )
         {
-            return boundary_lines[i];
+            for(uint j = 0; j < boundary_lines.size(); j++)
+            {
+                if(boundary_lines[j].backsector == node_base(which).get_sector() || boundary_lines[j].frontsector == node_base(which).get_sector() )
+                {
+                    vector3 o = node_base(which).get_center();
+                    vector3 line_dist = (vector_wrapper(midlines[j]).arrow - o);
+                    double dist_squared = line_dist dot line_dist;
+
+                    if(dist_squared < dist_to_center)
+                        line_id = i;
+                }
+            }
         }
+        return boundary_lines[line_id];
     }
     return null;
 }
@@ -470,7 +485,6 @@ protected bool is_sector_passable(node_base representation = null, actor by = nu
             if( (abs(other_ceiling - self_floor) < by.height || abs(self_ceiling - other_floor) < by.height) )
             {
                 //gap between sectors floor and ceiling too smal to fit actor
-                console.printf("floor-ceiling smaller than height");
                 return false;
             }
 
