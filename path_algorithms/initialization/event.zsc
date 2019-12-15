@@ -66,7 +66,7 @@ private void collect_special_line_sector() const
                 line a = level.lines[i];
                 pair.spec_lines.push( a );
 
-                SectorTagIterator tagger = SectorTagIterator.create(level.lines[i].args[0]);
+                SectorTagIterator tagger = level.CreateSectorTagIterator(level.lines[i].args[0]);
                 uint sector_number = tagger.Next();
                 uint prev = 0;
 
