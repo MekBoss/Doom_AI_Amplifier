@@ -8,11 +8,28 @@ private actor pseudotarget;
 
 private linetracer sight_check;
 
+//level graph and pathfinding thinkers
 private eventhandler nodes;
 
+//store created route here
 private array_wrapper path;
 
-private bool have_path, reach_target, cant_move_out, shooting;
+private bool shooting;
+
+private uint AI_flags;
+
+enum AI_flags_enum
+{
+    //Artificial Intellect Flags
+    AIF_HAVE_TARGET = 1,//obvious, correct target i.e. pseudotarget.target
+    AIF_IN_TARGET_SECTOR = 1 << 1,//self sector == target sector
+    AIF_CANT_EXIT_SECTOR = 1 << 2,//cant exit from spawn sector (pillar/cage)
+    AIF_SHOOTING = 1 << 3,//do pew pew pew
+    AIF_HAVE_PATH = 1 << 4,//have path route
+    AIF_FOLLOW_PATH = 1 << 5,//follow path route
+    AIF_REACH_DESTINATION = 1 << 6,//obvious
+
+};
 
 //update path for every X seconds
 private uint update_timer;
@@ -25,20 +42,30 @@ void init(actor a, eventhandler e)
     update_timer = 0;
 }
 
+//is target is actual actor (not pseudotarget)
+//and is kitten and its target in the same sector
 private bool is_real_target()
 {
     if(blind_kitten)
     {
         if(blind_kitten.target != null && blind_kitten.target != pseudotarget )
             if(blind_kitten.cursector != blind_kitten.target.cursector)
+            {
+                ai_flags &= ~AIF_IN_TARGET_SECTOR;
                 return true;
-    
-        else    
+            }
+
+        else
+        {
+            ai_flags |= AIF_IN_TARGET_SECTOR;
             return false;
+        }
     }
     return false;
 }
 
+//change kitten target
+//since we ehre, also unset flag "same sector as target"
 private void rearrange_target()
 {
     if(blind_kitten && pseudotarget)
@@ -49,13 +76,15 @@ private void rearrange_target()
         blind_kitten.target = pseudotarget;
 
         pseudotarget.setorigin(pseudotarget.master.pos, false);
+
+        AI_flags &= ~AIF_IN_TARGET_SECTOR;
     }
 }
 
 //call "create path from A to B" function
 private void get_path()
 {
-    if(blind_kitten && pseudotarget)
+    if(blind_kitten && pseudotarget && pseudotarget.target)
     {
         node_base cur_node = path_algorithm(nodes).sector_to_node(blind_kitten.cursector);
         node_base targ_node = path_algorithm(nodes).sector_to_node(pseudotarget.target.cursector);
@@ -63,7 +92,14 @@ private void get_path()
         if(cur_node && targ_node) 
         {
             if(cur_node == targ_node)
+            //shouldnt happens, but for safe
+            {
+                if(path)
+                    path.destroy();
+                
+                AI_flags |= AIF_IN_TARGET_SECTOR;
                 return;
+            }
             
             path = node_base(cur_node).dj_search(cur_node, targ_node, blind_kitten);
             array_wrapper(path).node_to_lines();
@@ -321,6 +357,13 @@ private void switch_target_back()
     pseudotarget.target = null;
 }
 
+/*
+|= for turn on
+&= ~"flag name" for turn off
+&= for comparing
+
+*/
+
 override void tick()
 {
     if(!ai_pathfinding_cvar)
@@ -331,86 +374,117 @@ override void tick()
         pseudotarget = actor.spawn("blind_kitten_target", (double.infinity, double.infinity, double.infinity) );
     }
 
-    //if alive, in some term, and have target
+    //if alive, in some sense, and have target
     if(blind_kitten && (blind_kitten.health > 0 || blind_kitten.bkilled == false || blind_kitten.bICECORPSE == false) && blind_kitten.target)
     {
-        if(shooting == false)
+        //if not shooting
+        if( (AI_flags &= AIF_SHOOTING) == false )
         {
+            //if target type is suitable for changing (not pseudotarget)
             if(is_real_target() == true)
             {
-                rearrange_target();
+                if(blind_kitten.target.cursector != blind_kitten.cursector)
+                    //replace pointers of kitten and pseudotarget
+                    //reset "in same sector" flag in function
+                    rearrange_target();
+
+                else
+                {
+                    AI_flags |= AIF_REACH_DESTINATION;
+                    AI_flags |= AIF_IN_TARGET_SECTOR;
+                }
             }
             
             //check_line_crashing(blind_kitten);
 
-            //monster target already changed to mod related target
-            //if it location dont equal to monster location, and if there are no path to it
-            if( (blind_kitten.target.cursector != blind_kitten.cursector && path == null))
+            //if not in the same sector as target init target chasing
+            if( (AI_flags &= AIF_IN_TARGET_SECTOR) == false)
             {
-                get_path();
-            }
-            //or 5 second pass and target, probably, change it sector
-            if( update_timer > 175)
-            {
-                get_path();
-                update_timer = 0;
-            }
+                AI_flags |= AIF_FOLLOW_PATH;
 
-            //follow path here
-            if( path )
-            {
-                if( array_wrapper(path).path_lines.size() > 1 )
+                //kitten target already changed to mod related target
+                //so if there are no path to it
+                if( path == null)
+                    get_path();
+
+                //or 5 second pass and target, probably, change it sector
+                if( update_timer > 175)
                 {
-                    uint last_line = array_wrapper(path).path_lines.size() - 1;
-                    uint last_sector = array_wrapper(path).path.size() - 1;
+                    get_path();
+                    update_timer = 0;
+                }
 
-                    if(blind_kitten.cursector == pseudotarget.cursector)
+                //follow path here
+                if( path )
+                {
+                    if( array_wrapper(path).path_lines.size() > 1 )
                     {
-                        vector3 o = (
-                        array_wrapper(path).path_lines[last_line].v1.p.x + array_wrapper(path).path_lines[last_line].v2.p.x,
-                        array_wrapper(path).path_lines[last_line].v1.p.y + array_wrapper(path).path_lines[last_line].v2.p.y,
-                        0) / 2;
-                        
-                        pseudotarget.setorigin( o, false );
+                        uint last_line = array_wrapper(path).path_lines.size() - 1;
+                        uint last_sector = array_wrapper(path).path.size() - 1;
+
+                        if(blind_kitten.cursector == pseudotarget.cursector)
+                        {
+                            vector3 o = (
+                            array_wrapper(path).path_lines[last_line].v1.p.x + array_wrapper(path).path_lines[last_line].v2.p.x,
+                            array_wrapper(path).path_lines[last_line].v1.p.y + array_wrapper(path).path_lines[last_line].v2.p.y,
+                            0) / 2;
+                            
+                            pseudotarget.setorigin( o, false );
+                        }
+
+                        //destroy last node in array if it location equal to kitten
+                        //and there are still some nodes to follow
+                        if(blind_kitten.cursector == array_wrapper(path).path[last_sector].get_sector() )
+                        {
+                            array_wrapper(path).path_lines.pop();
+                            array_wrapper(path).path.pop();
+                        }
+                    }
+                    
+                    //if last node...
+                    else if (array_wrapper(path).path_lines.size() == 1)
+                    {
+                        //...set pseudotarget in position...
+                        pseudotarget.setorigin( node_base(array_wrapper(path).path[0]).get_center(), false );
+                        //...clear all stuff...
+                        AI_flags &= ~AIF_FOLLOW_PATH;
+                        path.destroy();
+                        //...and set "reach destination" flag
+                        AI_flags |= AIF_REACH_DESTINATION;
                     }
 
-                    //destroy last node in array if it location equal to monster
-                    //and there are still some nodes to follow
-                    if(blind_kitten.cursector == array_wrapper(path).path[last_sector].get_sector() )
+                    //no points to follow
+                    else
                     {
-                        array_wrapper(path).path_lines.pop();
-                         array_wrapper(path).path.pop();
-                   }
+                        AI_flags &= ~AIF_FOLLOW_PATH;
+                        //even if there are no path at all
+                        AI_flags |= AIF_REACH_DESTINATION;
+                        path.destroy();
+                    }
                 }
 
-                else if (array_wrapper(path).path_lines.size() == 1)
+                if(!path)
                 {
-                    pseudotarget.setorigin( node_base(array_wrapper(path).path[0]).get_center(), false );
+                    AI_flags &= ~AIF_FOLLOW_PATH;
+                    AI_flags |= AIF_REACH_DESTINATION;
+                    blind_kitten.target = pseudotarget.target;
                 }
-                //no points to follow
-                else
-                    path.destroy();
-           }
-
-            if(!path)
-            {
-                blind_kitten.target = pseudotarget.target;
             }
         }
 
-        //monster want shoot someone, do some technical checks here to allow/prevent it
-        if(shooting == true || blind_kitten.instatesequence(blind_kitten.curstate, blind_kitten.findstate("missile") ) || blind_kitten.instatesequence(blind_kitten.curstate, blind_kitten.findstate("melee") ) )
+        //kitten want shoot someone, do some technical checks here to allow/prevent it
+        if(AI_flags &= AIF_SHOOTING || blind_kitten.instatesequence(blind_kitten.curstate, blind_kitten.findstate("missile") ) || blind_kitten.instatesequence(blind_kitten.curstate, blind_kitten.findstate("melee") ) )
         {
             //init shooting sequence
             if(shooting == false)
             {
-                //check is there are line of sight with actual monster target
+                //check is there are line of sight with actual kitten target
                 //yes, proceed to shooting
                 if(is_actual_target_in_fov() == true)
                 {
                     blind_kitten.target = pseudotarget.target;
                     blind_kitten.a_facetarget();
-                    //shooting = true;
+                    //AI_flags |= AIF_SHOOTING;
                 }
                 //otherwise, target behind wall, go back to folowing path
                 //by preventing any attack chance
@@ -422,7 +496,7 @@ override void tick()
                 }
             }
 /*
-            this make monsters too strong
+            this make kitten too strong
 
             //already shooting
             //if next state is see state, i.e. it already stop shooting
@@ -435,7 +509,7 @@ override void tick()
                     if(is_actual_target_in_fov() == false)
                     {
                         blind_kitten.target = pseudotarget;
-                        shooting = false;
+                        AI_flags &= ~AIF_SHOOTING;
                     }
 
                     else
