@@ -503,7 +503,7 @@ override void tick()
             if (blind_kitten.instatesequence(blind_kitten.curstate.nextstate, blind_kitten.findstate("see") ) )
             {
                 //if target alive and cvar say continue shoot
-                if(blind_kitten.target.bkilled == false && monster_constant_shooting == true)
+                if(blind_kitten.target.bkilled == false && ai_monster_constant_shooting == true)
                 {
                     //if target in fov of course
                     if(is_actual_target_in_fov() == false)
