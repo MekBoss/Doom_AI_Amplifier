@@ -65,7 +65,6 @@ private bool is_real_target()
 }
 
 //change kitten target
-//since we ehre, also unset flag "same sector as target"
 private void rearrange_target()
 {
     if(blind_kitten && pseudotarget)
@@ -76,8 +75,6 @@ private void rearrange_target()
         blind_kitten.target = pseudotarget;
 
         pseudotarget.setorigin(pseudotarget.master.pos, false);
-
-        AI_flags &= ~AIF_IN_TARGET_SECTOR;
     }
 }
 
@@ -384,10 +381,14 @@ override void tick()
             if(is_real_target() == true)
             {
                 if(blind_kitten.target.cursector != blind_kitten.cursector)
+                {
                     //replace pointers of kitten and pseudotarget
                     //reset "in same sector" flag in function
                     rearrange_target();
-
+                    AI_flags &= ~AIF_IN_TARGET_SECTOR;
+                    AI_flags &= ~AIF_REACH_DESTINATION;
+                }
+                
                 else
                 {
                     AI_flags |= AIF_REACH_DESTINATION;
@@ -398,7 +399,7 @@ override void tick()
             //check_line_crashing(blind_kitten);
 
             //if not in the same sector as target init target chasing
-            if( (AI_flags &= AIF_IN_TARGET_SECTOR) == false)
+            if( !(AI_flags &= AIF_IN_TARGET_SECTOR) && !(AI_flags &= AIF_REACH_DESTINATION) )
             {
                 AI_flags |= AIF_FOLLOW_PATH;
 
@@ -422,22 +423,30 @@ override void tick()
                         uint last_line = array_wrapper(path).path_lines.size() - 1;
                         uint last_sector = array_wrapper(path).path.size() - 1;
 
-                        if(blind_kitten.cursector == pseudotarget.cursector)
+                        //if kitten in the same sector as last node route
+                        if(blind_kitten.cursector == array_wrapper(path).path[last_sector].get_sector() )
                         {
+                            //path_lines siae must be greater then one, so do this without checks
                             vector3 o = (
                             array_wrapper(path).path_lines[last_line].v1.p.x + array_wrapper(path).path_lines[last_line].v2.p.x,
                             array_wrapper(path).path_lines[last_line].v1.p.y + array_wrapper(path).path_lines[last_line].v2.p.y,
                             0) / 2;
                             
                             pseudotarget.setorigin( o, false );
-                        }
 
-                        //destroy last node in array if it location equal to kitten
-                        //and there are still some nodes to follow
-                        if(blind_kitten.cursector == array_wrapper(path).path[last_sector].get_sector() )
-                        {
-                            array_wrapper(path).path_lines.pop();
-                            array_wrapper(path).path.pop();
+                            //check what pop, line or sector
+                            //since amount of lines initially always should be at 1 smaller than amount of sectors
+                            //do some comparisons here
+                            if(last_sector - last_line == 1)
+                            {
+                                array_wrapper(path).path.pop();
+                            }
+                            
+                            else if(last_sector == last_line)
+                            {
+                                array_wrapper(path).path_lines.pop();
+                                array_wrapper(path).path.pop();
+                            }
                         }
                     }
                     
@@ -451,23 +460,33 @@ override void tick()
                         path.destroy();
                         //...and set "reach destination" flag
                         AI_flags |= AIF_REACH_DESTINATION;
+                        AI_flags |= AIF_IN_TARGET_SECTOR;
                     }
 
-                    //no points to follow
+                    //no path to follow
                     else
                     {
+                        //so no following path
+                        //aka reach destination
                         AI_flags &= ~AIF_FOLLOW_PATH;
-                        //even if there are no path at all
                         AI_flags |= AIF_REACH_DESTINATION;
-                        path.destroy();
+                        AI_flags |= AIF_IN_TARGET_SECTOR;
+
+                        if(pseudotarget.target)
+                            blind_kitten.target = pseudotarget.target;
+                        if(path)
+                            path.destroy();
                     }
                 }
 
+                //how did you even enter here in this case?
                 if(!path)
                 {
                     AI_flags &= ~AIF_FOLLOW_PATH;
                     AI_flags |= AIF_REACH_DESTINATION;
-                    blind_kitten.target = pseudotarget.target;
+                    AI_flags |= AIF_IN_TARGET_SECTOR;
+                    if(pseudotarget.target)
+                        blind_kitten.target = pseudotarget.target;
                 }
             }
         }
@@ -478,6 +497,7 @@ override void tick()
             //init shooting sequence
             if(shooting == false)
             {
+                
                 //check is there are line of sight with actual kitten target
                 //yes, proceed to shooting
                 if(is_actual_target_in_fov() == true)
