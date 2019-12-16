@@ -2,9 +2,8 @@
 
 class pathfinding_thinker : thinker
 {
-//monster
-private actor blind_kitten;
-private actor pseudotarget;
+//kitten and it toy
+private actor blind_kitten, pseudotarget;
 
 private linetracer sight_check;
 
@@ -72,7 +71,7 @@ private void rearrange_target()
 
         blind_kitten.target = pseudotarget;
 
-        pseudotarget.setorigin(pseudotarget.master.pos, false);
+        pseudotarget.setorigin(pseudotarget.target.pos, false);
     }
 }
 
@@ -373,7 +372,7 @@ override void tick()
     if(blind_kitten && (blind_kitten.health > 0 || blind_kitten.bkilled == false || blind_kitten.bICECORPSE == false) && blind_kitten.target)
     {
         //if not shooting
-        if( (AI_flags &= AIF_SHOOTING) == false )
+        if( !(AI_flags &= AIF_SHOOTING) )
         {
             //if target type is suitable for changing (not pseudotarget)
             if(is_real_target() == true)
@@ -406,8 +405,8 @@ override void tick()
                 if( path == null)
                     get_path();
 
-                //or 2 second pass and target, probably, change it sector
-                if( update_timer > 70)
+                //or 3 second pass and target, probably, change it sector
+                if( update_timer > 105)
                 {
                     get_path();
                     update_timer = 0;
@@ -424,13 +423,31 @@ override void tick()
                         //if kitten in the same sector as last node route
                         if(blind_kitten.cursector == array_wrapper(path).path[last_sector].get_sector() )
                         {
-                            //path_lines siae must be greater then one, so do this without checks
-                            vector3 o = (
+                            //path_lines size must be greater then one, so do this without checks
+                            //line midpoint
+                            vector3 warp_point = (
                             array_wrapper(path).path_lines[last_line].v1.p.x + array_wrapper(path).path_lines[last_line].v2.p.x,
                             array_wrapper(path).path_lines[last_line].v1.p.y + array_wrapper(path).path_lines[last_line].v2.p.y,
                             0) / 2;
                             
-                            pseudotarget.setorigin( o, false );
+                            //normal to the line...
+                            vector3 normal = (array_wrapper(path).path_lines[last_line].v1.p - array_wrapper(path).path_lines[last_line].v2.p, 0);//(warp_point.y, warp_point.x, 0);
+                            //good that for simple 2d lines it can be achieved by next tricks without complex math
+                            double xx = normal.x;
+                            normal.x = -normal.y;
+                            normal.y = xx;
+
+                            //almost unit vector hack
+                            if(abs(normal.x) > abs(normal.y))
+                                normal /= abs(normal.x);
+                            else   
+                                normal /= abs(normal.y);
+                            
+                            if(level.pointinsector(warp_point.xy + normal.xy) == node_base(array_wrapper(path).path[last_sector - 1]).get_sector() )
+                                pseudotarget.setorigin( warp_point + (normal * (70 + blind_kitten.radius) ), false );
+                            else
+                                pseudotarget.setorigin( warp_point - (normal * (70 + blind_kitten.radius)), false );
+
 
                             //check what pop, line or sector
                             //since amount of lines initially always should be at 1 smaller than amount of sectors
@@ -490,17 +507,15 @@ override void tick()
         }
 
         //kitten want shoot someone, do some technical checks here to allow/prevent it
-        if(AI_flags &= AIF_SHOOTING || blind_kitten.instatesequence(blind_kitten.curstate, blind_kitten.findstate("missile") ) || blind_kitten.instatesequence(blind_kitten.curstate, blind_kitten.findstate("melee") ) )
+        if(blind_kitten.instatesequence(blind_kitten.curstate, blind_kitten.findstate("missile") ) || blind_kitten.instatesequence(blind_kitten.curstate, blind_kitten.findstate("melee") ) )
         {
-            //init shooting sequence
-                
             //check is there are line of sight with actual kitten target
-            //yes, proceed to shooting
             if(is_actual_target_in_fov() == true)
             {
+                //yes, proceed to shooting
                 blind_kitten.target = pseudotarget.target;
                 blind_kitten.a_facetarget();
-                //AI_flags |= AIF_SHOOTING;
+                AI_flags |= AIF_SHOOTING;
             }
             //otherwise, target behind wall, go back to folowing path
             //by preventing any attack chance
@@ -533,6 +548,10 @@ override void tick()
             }
 */            
         }
+
+        else
+            AI_flags &= ~AIF_SHOOTING;
+
     }
 
     //increase timer
