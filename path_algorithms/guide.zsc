@@ -14,8 +14,6 @@ private eventhandler nodes;
 //store created route here
 private array_wrapper path;
 
-private bool shooting;
-
 private uint AI_flags;
 
 enum AI_flags_enum
@@ -408,8 +406,8 @@ override void tick()
                 if( path == null)
                     get_path();
 
-                //or 5 second pass and target, probably, change it sector
-                if( update_timer > 175)
+                //or 2 second pass and target, probably, change it sector
+                if( update_timer > 70)
                 {
                     get_path();
                     update_timer = 0;
@@ -495,25 +493,22 @@ override void tick()
         if(AI_flags &= AIF_SHOOTING || blind_kitten.instatesequence(blind_kitten.curstate, blind_kitten.findstate("missile") ) || blind_kitten.instatesequence(blind_kitten.curstate, blind_kitten.findstate("melee") ) )
         {
             //init shooting sequence
-            if(shooting == false)
-            {
                 
-                //check is there are line of sight with actual kitten target
-                //yes, proceed to shooting
-                if(is_actual_target_in_fov() == true)
-                {
-                    blind_kitten.target = pseudotarget.target;
-                    blind_kitten.a_facetarget();
-                    //AI_flags |= AIF_SHOOTING;
-                }
-                //otherwise, target behind wall, go back to folowing path
-                //by preventing any attack chance
-                else
-                {
-                    blind_kitten.bJUSTATTACKED = true;
-                    blind_kitten.reactiontime = 16;
-                    blind_kitten.setstate(blind_kitten.findstate("see"));
-                }
+            //check is there are line of sight with actual kitten target
+            //yes, proceed to shooting
+            if(is_actual_target_in_fov() == true)
+            {
+                blind_kitten.target = pseudotarget.target;
+                blind_kitten.a_facetarget();
+                //AI_flags |= AIF_SHOOTING;
+            }
+            //otherwise, target behind wall, go back to folowing path
+            //by preventing any attack chance
+            else
+            {
+                blind_kitten.bJUSTATTACKED = true;
+                blind_kitten.reactiontime = 16;
+                blind_kitten.setstate(blind_kitten.findstate("see"));
             }
 /*
             this make kitten too strong
