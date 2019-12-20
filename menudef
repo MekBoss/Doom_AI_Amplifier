@@ -7,6 +7,17 @@ OptionMenu "OptionsMenu"
 OptionMenu "ai_options"
 {
     title "AI options"
-    StaticText "Enable pathfinding for monsters"
     Option "Enable monsters pathfinding", "ai_pathfinding_cvar", "onoff"
+    StaticText "Enable pathfinding for monsters", "Olive"
+    StaticText "", "Olive"
+
+    Option "Which algorithm use", "path_which_use", "avaliablealgorithm"
+    StaticText "Change way path traverse", "Olive"
+    StaticText "'A star' a bit faster", "Olive"
+}
+
+OptionValue "avaliablealgorithm"
+{
+    0, "Dijicstra"
+    1, "A star"
 }

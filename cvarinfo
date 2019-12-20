@@ -1,6 +1,6 @@
 server noarchive bool path_dj_debug = false;//dijicstra
-server noarchive bool path_all_star_debug = false;//dijicstra
-server noarchive bool path_all_star_debug = false;//dijicstra
+server noarchive bool path_all_star_debug = false;//a*
+server int path_which_use = 1;//switch what use, a* or dijicstra
 
 server noarchive bool ai_monster_constant_shooting = true;
 

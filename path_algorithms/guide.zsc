@@ -95,9 +95,18 @@ private void get_path()
                 return;
             }
             
-            //path = node_base(cur_node).dj_search(cur_node, targ_node, blind_kitten);
-            path = node_base(cur_node).all_star_search(cur_node, targ_node, blind_kitten);
-            array_wrapper(path).node_to_lines();
+            switch(path_which_use)
+            {
+                case 0 : 
+                    path = node_base(cur_node).dj_search(cur_node, targ_node, blind_kitten);
+                    break;
+
+                default:
+                case 1 :
+                    path = node_base(cur_node).all_star_search(cur_node, targ_node, blind_kitten);
+                    break;
+            }
+                array_wrapper(path).node_to_lines();
         }
 
         else
