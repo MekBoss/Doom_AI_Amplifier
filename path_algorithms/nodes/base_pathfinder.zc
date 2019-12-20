@@ -1,0 +1,4 @@
+class basic_pathfinder : node_base
+{
+
+}

@@ -222,6 +222,9 @@ protected array<node_base> spanning_tree_nodes;
 //return line between "this" sector and another
 line line_between_sectors(node_base which = null) const 
 {
+    if(self == which)
+        return null;
+
     if(which)
     {
         uint i = neighborn_nodes.find(which);

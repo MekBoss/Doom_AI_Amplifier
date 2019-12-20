@@ -1,14 +1,13 @@
-//dijicstra actually, but I would name it dj for short
+//Sooomebady would told me the wolrd is gonna roll me
+//I aint the sharpes tool in the shed :)
+
 extend class node_base
 {
-//cost of a path from the point of origin
-protected double path_cost;
-
 //return path and bool is it completed
-//i.e. is pathactually passable by actor
-array_wrapper, bool dj_search(node_base start, node_base finish, actor walker = null)
+//i.e. is path actuallycan reach target
+array_wrapper, bool all_star_search(node_base start, node_base finish, actor walker = null)
 {
-    //if walker is null it mean "runing script in debug mode"
+    //since a* is extension of dj algorithm, copy paste time
 
     //create array wrapper for future
     array_wrapper path_map = array_wrapper(new("array_wrapper") );
@@ -51,13 +50,13 @@ array_wrapper, bool dj_search(node_base start, node_base finish, actor walker = 
         while(reach == false)
         {
             fuse++;
-            if(path_dj_debug)
+            if(path_all_star_debug)
             {
                 console.printf("");
                 console.printf("size of completed_nodes %i", completed_nodes.size() );
             }
 
-            //find node with smalles path_cost from the start to this node
+            //find closest to the finish node from all pre processed
             if( completed_nodes.size() > 0 )
             {
                 //because double.inf greater than any real number
@@ -67,11 +66,17 @@ array_wrapper, bool dj_search(node_base start, node_base finish, actor walker = 
                 {
                     if(node_base(completed_nodes[i]).get_processed() == false)
                     {
-                        if(node_base(completed_nodes[i]).path_cost < node_distance)
+                        //literally the only thing I here add/change...
+                        vector3 vector_to_finish = level.vec3diff(node_base(completed_nodes[i]).get_center(), node_base(finish).get_center());
+
+                        double distance_to_finish = vector_to_finish dot vector_to_finish;
+
+                        if(distance_to_finish < node_distance)
                         {
-                            node_distance = node_base(completed_nodes[i]).path_cost;
+                            node_distance = distance_to_finish;
                             waypoint_old = node_base(completed_nodes[i]);
                         }
+                        //...ends here
                     }
                 }
             }
@@ -86,12 +91,12 @@ array_wrapper, bool dj_search(node_base start, node_base finish, actor walker = 
                 //so it dont pick same node all over again
                 waypoint.processed = true;
                 
-                if(path_dj_debug)
+                if(path_all_star_debug)
                     console.printf("waypoint exist, distance %f", waypoint.path_cost);
 
                 let crossroads = array_wrapper(waypoint.get_all_neighborgs() );
 
-                if(path_dj_debug)
+                if(path_all_star_debug)
                     console.printf("crossroads size %i", crossroads.path.size() );
                 
                 for(uint i = 0; i < crossroads.path.size(); i++)
@@ -101,10 +106,10 @@ array_wrapper, bool dj_search(node_base start, node_base finish, actor walker = 
                     waypoint_old = null;
 
                     //check if we able to go to this sector through line between them
-                    //if dont, ignore it for now, probably there are another way
+                    //if no, ignore it for now, probably there are another way
                     if( is_line_blocks( waypoint.line_between_sectors(waypoint_new), walker) == false) 
                     {
-                        if(path_dj_debug)
+                        if(path_all_star_debug)
                             console.printf("sector %i unreachable from sector %i, blocked by line", waypoint_new.get_id(), waypoint.get_id() );
                         continue;
                     }
@@ -112,7 +117,7 @@ array_wrapper, bool dj_search(node_base start, node_base finish, actor walker = 
                     //line let us pass, but is sector suitable for actor
                     if( waypoint.is_sector_passable(waypoint_new, walker) == false )
                     {
-                        if(path_dj_debug)
+                        if(path_all_star_debug)
                             console.printf("cant enter in sector %i from sector %i, problems with floor/ceiling height", waypoint_new.get_id(), waypoint.get_id()  );
                         
                         //mark it as processed, since there are no use for it for now
@@ -123,14 +128,14 @@ array_wrapper, bool dj_search(node_base start, node_base finish, actor walker = 
                     //calculate path length from start to current node
                     double d = waypoint.path_cost + waypoint.points_distance(waypoint.get_center(), waypoint_new.get_center() );
                     
-                    if(path_dj_debug)
+                    if(path_all_star_debug)
                         console.printf("distance between nodes %f", d);
 
 
                     //...of course if it smaller than distance that already stored in node
                     if( waypoint_new.path_cost > d)
                     {
-                        if(path_dj_debug)
+                        if(path_all_star_debug)
                             console.printf("push that node in completed array");
         
                         waypoint_new.path_cost = d;
@@ -188,7 +193,7 @@ array_wrapper, bool dj_search(node_base start, node_base finish, actor walker = 
                 actual_path.push(nf);
 
             else
-                console.printf("there are no closest node");
+                console.printf("there are no closest node, which is weird");
         }
 
         reach = false;

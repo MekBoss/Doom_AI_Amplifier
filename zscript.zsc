@@ -24,8 +24,9 @@ version "3.8"
 #include "path_algorithms/initialization/node_initializator.zsc"
 
 //dijicstra algorithm, dj for short
-//a * would, probably, be created in future
 #include "path_algorithms/algorithms/dj_alg/dj.zsc"
+//a*, all star just because
+#include "path_algorithms/algorithms/all_star/all_star.zc"
 
 
 //use black pointers magic to apply pathfinding script to all possible monsters from doom mods
