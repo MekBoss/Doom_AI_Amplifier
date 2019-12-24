@@ -14,6 +14,19 @@ OptionMenu "ai_options"
     Option "Which algorithm use", "path_which_use", "avaliablealgorithm"
     StaticText "Change way path traverse", "Olive"
     StaticText "'A star' a bit faster", "Olive"
+    StaticText "", "Olive"
+
+    Option "Infighting", "ai_allow_infighting", "onoff"
+    StaticText "Prevent monsters from shooting", "green"
+    StaticText "if it can hit buddy", "green"
+    StaticText "DOES NOT DISABLE INFIGHTING AT ALL", "red"
+    StaticText "", "green"
+    
+    Option "Smart infighting?", "ai_smart_infighting", "onoff"
+    StaticText "Work only if infighting turn on", "green"
+    StaticText "Monster WILL shoot in another monster", "green"
+    StaticText "if another monster have less health than it", "green"
+    StaticText "", "green"
 }
 
 OptionValue "avaliablealgorithm"

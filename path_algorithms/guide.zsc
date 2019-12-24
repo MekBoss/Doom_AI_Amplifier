@@ -75,6 +75,15 @@ private void rearrange_target()
     }
 }
 
+//change targets back, if needed
+private void switch_target_back()
+{
+    if(blind_kitten && pseudotarget && blind_kitten.target == pseudotarget)
+    {
+        blind_kitten.target = pseudotarget.target;
+    }
+}
+
 //call "create path from A to B" function
 private void get_path()
 {
@@ -335,16 +344,48 @@ private bool is_actual_target_in_fov()
             hit_dir = level.vec3diff(blind_kitten.pos, blind_kitten.target.pos);
 
         if(pseudotarget && pseudotarget.target)
+        {
             target_checker(sight_check).actual_target = pseudotarget.target;
+            target_checker(sight_check).shooter = blind_kitten;
+        }
         else
+        {
             target_checker(sight_check).actual_target = blind_kitten.target;
-        
+            target_checker(sight_check).shooter = blind_kitten;
+        }
         
         sight_check.trace(blind_kitten.pos + (0, 0, blind_kitten.height / 2), blind_kitten.cursector, hit_dir, 8192, TRACE_HitSky);
 
-        //yes, proceed to shooting
+        //originall target in sight
         if(target_checker(sight_check).success == true)
-            return true;
+        {    
+            if(ai_allow_infighting)
+            {
+                if(ai_smart_infighting && target_checker(sight_check).first_hit)
+                {
+                    if(target_checker(sight_check).first_hit.health <= blind_kitten.health)
+                    {
+                        target_checker(sight_check).first_hit = null;
+                        return true;
+                    }
+
+                    else
+                    {
+                        target_checker(sight_check).first_hit = null;
+                        return false;
+                    }
+                }
+
+                //no smart infighting or first_hit actor, but target still in sight
+                else
+                {
+                    target_checker(sight_check).first_hit = null;
+                    return true;
+                }
+            }
+            else
+                return false;
+        }
 
         //go back to default monsters buisenes, like dancing on spawn spot
         else
@@ -355,11 +396,6 @@ private bool is_actual_target_in_fov()
         return false;
 }
 
-private void switch_target_back()
-{
-    blind_kitten.target = pseudotarget.target;
-    pseudotarget.target = null;
-}
 
 /*
 |= for turn on
@@ -370,9 +406,6 @@ private void switch_target_back()
 
 override void tick()
 {
-    if(!ai_pathfinding_cvar)
-        return;
-
     if(!pseudotarget)
     {
         pseudotarget = actor.spawn("blind_kitten_target", (double.infinity, double.infinity, double.infinity) );
@@ -383,7 +416,7 @@ override void tick()
     if(blind_kitten && (blind_kitten.health > 0 || blind_kitten.bkilled == false || blind_kitten.bICECORPSE == false) && blind_kitten.target)
     {
         //if not shooting
-        if( !(AI_flags &= AIF_SHOOTING) )
+        if( !(AI_flags & AIF_SHOOTING) && ai_pathfinding_cvar)
         {
             //if target type is suitable for changing (not pseudotarget)
             if(is_real_target() == true)
@@ -396,7 +429,7 @@ override void tick()
                     AI_flags &= ~AIF_IN_TARGET_SECTOR;
                     AI_flags &= ~AIF_REACH_DESTINATION;
                 }
-                
+
                 else
                 {
                     AI_flags |= AIF_REACH_DESTINATION;
@@ -407,7 +440,7 @@ override void tick()
             //check_line_crashing(blind_kitten);
 
             //if not in the same sector as target init target chasing
-            if( !(AI_flags &= AIF_IN_TARGET_SECTOR) && !(AI_flags &= AIF_REACH_DESTINATION) )
+            if( !(AI_flags & AIF_IN_TARGET_SECTOR) && !(AI_flags & AIF_REACH_DESTINATION) )
             {
                 AI_flags |= AIF_FOLLOW_PATH;
 
@@ -529,39 +562,42 @@ override void tick()
         //kitten want shoot someone, do some technical checks here to allow/prevent it
         if(
         (blind_kitten.instatesequence(blind_kitten.curstate, blind_kitten.findstate("missile") ) || blind_kitten.instatesequence(blind_kitten.curstate, blind_kitten.findstate("melee") ) )
-        && blind_kitten.target == pseudotarget)
+        && blind_kitten.target)
         {
             state melee_state = blind_kitten.findstate("meleee");
             state missile_state = blind_kitten.findstate("missile");
             
             if(melee_state != missile_state)
             {
-                //check is there are line of sight with actual kitten target
-                if(blind_kitten.instatesequence(blind_kitten.curstate, missile_state )  && is_actual_target_in_fov() == true)
+                if(is_actual_target_in_fov() == true)
                 {
-                    //yes, proceed to shooting
-                    blind_kitten.target = pseudotarget.target;
-                    blind_kitten.a_facetarget();
-                    AI_flags |= AIF_SHOOTING;
-                }
-            
-                else if(blind_kitten.instatesequence(blind_kitten.curstate, melee_state )  && is_actual_target_in_fov() == true)
-                {
-                    vector3 vec = level.vec3diff(blind_kitten.pos, pseudotarget.target.pos);
-                    double dist_sqrd = vec dot vec;
-
-                    if(dist_sqrd < (blind_kitten.MeleeRange + blind_kitten.radius) * (blind_kitten.MeleeRange + blind_kitten.radius) )
+                    //check is there are line of sight with actual kitten target
+                    if(blind_kitten.instatesequence(blind_kitten.curstate, missile_state ) )
                     {
-                        blind_kitten.target = pseudotarget.target;
+                        //yes, proceed to shooting
+                        switch_target_back();
                         blind_kitten.a_facetarget();
                         AI_flags |= AIF_SHOOTING;
                     }
-
-                    else
+                
+                    else if(blind_kitten.instatesequence(blind_kitten.curstate, melee_state ) )
                     {
-                        blind_kitten.bJUSTATTACKED = true;
-                        blind_kitten.reactiontime = 16;
-                        blind_kitten.setstate(blind_kitten.findstate("see"));
+                        vector3 vec = level.vec3diff(blind_kitten.pos, pseudotarget.target.pos);
+                        double dist_sqrd = vec dot vec;
+
+                        if(dist_sqrd < (blind_kitten.MeleeRange + blind_kitten.radius) * (blind_kitten.MeleeRange + blind_kitten.radius) )
+                        {
+                            switch_target_back();
+                            blind_kitten.a_facetarget();
+                            AI_flags |= AIF_SHOOTING;
+                        }
+
+                        else
+                        {
+                            blind_kitten.bJUSTATTACKED = true;
+                            blind_kitten.reactiontime = 16;
+                            blind_kitten.setstate(blind_kitten.findstate("see"));
+                        }
                     }
                 }
 
@@ -573,12 +609,13 @@ override void tick()
                 }
             }
 
+            //melee and missile state blend in one, cant do enything with it here
             else
             {
                 if(is_actual_target_in_fov() == true)
                 {
                     //yes, proceed to shooting
-                    blind_kitten.target = pseudotarget.target;
+                    switch_target_back();
                     blind_kitten.a_facetarget();
                     AI_flags |= AIF_SHOOTING;
                 }
@@ -667,7 +704,7 @@ states
 
 class target_checker : LineTracer
 {
-Actor actual_target;
+Actor shooter, actual_target, first_hit;
 bool success;
 
 override ETraceStatus TraceCallback()
@@ -692,7 +729,15 @@ override ETraceStatus TraceCallback()
             success = true;
             return TRACE_Stop;
         }
-        return TRACE_skip;
+
+        if(!first_hit)
+        {
+            if(Results.HitActor != shooter)
+                first_hit = Results.HitActor;
+            
+            return TRACE_Skip;
+        }
+        return TRACE_Skip;
     }
     return TRACE_Stop;
 }
