@@ -18,7 +18,7 @@ private uint AI_flags;
 enum AI_flags_enum
 {
     //Artificial Intellect Flags
-    AIF_HAVE_TARGET = 1,//obvious, correct target i.e. pseudotarget.target
+    AIF_HAVE_TARGET = 1,//obvious, have a correct target i.e. pseudotarget.target
     AIF_IN_TARGET_SECTOR = 1 << 1,//self sector == target sector
     AIF_CANT_EXIT_SECTOR = 1 << 2,//cant exit from spawn sector (pillar/cage)
     AIF_SHOOTING = 1 << 3,//do pew pew pew
@@ -424,7 +424,6 @@ override void tick()
                 if(blind_kitten.target.cursector != blind_kitten.cursector)
                 {
                     //replace pointers of kitten and pseudotarget
-                    //reset "in same sector" flag in function
                     rearrange_target();
                     AI_flags &= ~AIF_IN_TARGET_SECTOR;
                     AI_flags &= ~AIF_REACH_DESTINATION;

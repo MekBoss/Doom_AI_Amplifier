@@ -8,27 +8,27 @@ released under mit/x11 license
 version "3.8"
 
 //zscript cant return/pass arrays, vectors, etc. fix it here
-#include "path_algorithms/wrappers.zsc"
+#include "path_algorithms/wrappers.zc"
 
 //sub node definition
 //required fo specific sectors
 //empty for now
-#include "path_algorithms/nodes/sub_node.zsc"
+#include "path_algorithms/nodes/sub_node.zc"
 //base node definition
-#include "path_algorithms/nodes/node_base.zsc"
+#include "path_algorithms/nodes/node_base.zc"
 
 
 //event contain all level graph, initialize graph creation and some other initializations
-#include "path_algorithms/initialization/event.zsc"
+#include "path_algorithms/initialization/event.zc"
 //set technical stuff, like connectivity, id, spanning tree, performance, etc
-#include "path_algorithms/initialization/node_initializator.zsc"
+#include "path_algorithms/initialization/node_initializator.zc"
 
 //dijicstra algorithm, dj for short
-#include "path_algorithms/algorithms/dj_alg/dj.zsc"
+#include "path_algorithms/algorithms/dj_alg/dj.zc"
 //a*, all star just because
 #include "path_algorithms/algorithms/all_star/all_star.zc"
 
 
 //use black pointers magic to apply pathfinding script to all possible monsters from doom mods
 //can cause SERIOUS lags if used on slaughtermaps or maps with enormous amount of enemies
-#include "path_algorithms/guide.zsc"
+#include "path_algorithms/guide.zc"
