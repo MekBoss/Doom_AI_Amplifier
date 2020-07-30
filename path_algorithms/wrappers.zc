@@ -20,21 +20,8 @@ class vector_wrapper
     vector3 arrow;
 }
 
-class vector_array_wrapper
-{
-    array<vector_wrapper> vertices;
-}
-
 class special_line_between_sectors
 {
     array<line> spec_lines;
     array<sector> spec_sectors;
-}
-
-class line_wrapper
-{
-    line l;
-    vertex v1, v2;
-
-    bool line_processed, v1_processed, v2_processed;
 }
