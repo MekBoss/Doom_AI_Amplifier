@@ -28,7 +28,7 @@ enum AI_flags_enum
 
 };
 
-//update path for every X seconds
+//update path every X seconds
 private uint update_timer;
 
 void init(actor a, eventhandler e)

@@ -211,20 +211,25 @@ override void Worldthingspawned(WorldEvent e)
 //debug stuff
 override void NetworkProcess(ConsoleEvent e)
 {
-    //printf info about "hitscanned" line
+    if(e.name == "PortalGroup")
+    {
+        let player = players[e.Player].mo;
+        console.printf("portal group is %i", player.cursector.PortalGroup);
+    }
+    //print info about "hitscanned" line
     if(e.name == "line")
     {
-            FLineTraceData RemoteRay;
-            
-            let player = players [e.Player].mo;
+        FLineTraceData RemoteRay;
+        
+        let player = players[e.Player].mo;
 
-            player.LineTrace(
-               player.angle,
-               2048,
-               player.pitch,
-               offsetz: player.height-12,
-               data: RemoteRay
-            );
+        player.LineTrace(
+            player.angle,
+            2048,
+            player.pitch,
+            offsetz: player.height-12,
+            data: RemoteRay
+        );
 
         line l;
 
