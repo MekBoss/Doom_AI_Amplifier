@@ -7,7 +7,8 @@ extend class node_base
 //i.e. is path actuallycan reach target
 array_wrapper, bool all_star_search(node_base start, node_base finish, actor walker = null)
 {
-    //since a* is extension of dj algorithm, copy paste time
+    //since a* is an extension of dj algorithm, it literally copy of dijicstra algorythm
+    //but with one change
 
     //create array wrapper for future
     array_wrapper path_map = array_wrapper(new("array_wrapper") );
@@ -59,24 +60,28 @@ array_wrapper, bool all_star_search(node_base start, node_base finish, actor wal
             //find closest to the finish node from all pre processed
             if( completed_nodes.size() > 0 )
             {
-                //because double.inf greater than any real number
+                //double.inf greater than any real number
+                //use it to compare with any "real" number
                 double node_distance = double.infinity;
 
                 for(uint i = 0; i < completed_nodes.size(); i++ )
                 {
                     if(node_base(completed_nodes[i]).get_processed() == false)
                     {
-                        //literally the only thing I here add/change...
+                        //the only thing how A* differs from dijicstra is distance getting
+                        //dijicstra blindly find node with smalles path (from the beginning) to current
+                        //in set of already processed nodes and use it as new node for future path computation
+                        //while A* finds node (in set of already processed nodes) which are closest to target node
+                        //using actual distance from curent node to finish node
                         vector3 vector_to_finish = level.vec3diff(node_base(completed_nodes[i]).get_center(), node_base(finish).get_center());
 
                         double distance_to_finish = vector_to_finish dot vector_to_finish;
-
                         if(distance_to_finish < node_distance)
                         {
                             node_distance = distance_to_finish;
                             waypoint_old = node_base(completed_nodes[i]);
                         }
-                        //...ends here
+                        //...difference ends here
                     }
                 }
             }

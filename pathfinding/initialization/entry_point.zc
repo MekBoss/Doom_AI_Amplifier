@@ -4,6 +4,7 @@ class path_algorithm : eventhandler
 private array<node_base> level_graph;
 
 //put here all lines which have special > 0 and args[0] > 0
+//used for switches/doors/similar things
 private array<special_line_between_sectors> distant_activators;
 
 //return node by its number in node array
@@ -21,7 +22,7 @@ uint graph_size() const
     return level_graph.size();
 }
 
-//as function say
+//transform sector to node using sectors number in level.sectors array
 node_base sector_to_node(sector polygon)  const
 {
     for(uint i = 0; i < Level.Sectors.Size(); i++)
@@ -34,7 +35,8 @@ node_base sector_to_node(sector polygon)  const
     return null;
 }
 
-///assign sector/node to node/sector
+//assign sector to node
+//did not init all graph specific stuff, nodes do it itself
 private void init_level_graph()
 {
     for(int i = 0; i < Level.Sectors.Size(); i++)
@@ -42,11 +44,6 @@ private void init_level_graph()
         thinker nod = new("node_base").init(Level.Sectors[i], self);
         level_graph.push( (node_base)(nod) );
     }
-}
-
-sector node_to_sector(thinker node) const
-{
-    return node_base(node).get_sector();
 }
 
 //collect all lines which have special on self, but have args[0] =/= 0
@@ -63,8 +60,8 @@ private void collect_special_line_sector() const
             {
                 let pair = special_line_between_sectors(new("special_line_between_sectors"));
 
-                line a = level.lines[i];
-                pair.spec_lines.push( a );
+                line cur_line = level.lines[i];
+                pair.spec_lines.push(cur_line);
 
                 SectorTagIterator tagger = level.CreateSectorTagIterator(level.lines[i].args[0]);
                 uint sector_number = tagger.Next();
@@ -200,6 +197,7 @@ override void WorldLoaded(WorldEvent e)
 //all thinkers which calls find path function and other stuff
 private array<pathfinding_thinker> monsters_gps;
 
+//attaches gps thinker to every spawned monsters in the game
 override void Worldthingspawned(WorldEvent e)
 {
     if(e.thing.bismonster == true)
@@ -210,9 +208,10 @@ override void Worldthingspawned(WorldEvent e)
     }
 } 
 
-
+//debug stuff
 override void NetworkProcess(ConsoleEvent e)
 {
+    //printf info about "hitscanned" line
     if(e.name == "line")
     {
             FLineTraceData RemoteRay;
@@ -266,7 +265,7 @@ override void NetworkProcess(ConsoleEvent e)
             actor.spawn("healthbonus", pos: (b, 0));
         }
     }
-
+    //spawn health bonuse at the near the center of each line on the level
     if(e.name == "alllines")
     {
         for(uint i = 0; i < level.lines.size(); i++)
@@ -282,7 +281,7 @@ override void NetworkProcess(ConsoleEvent e)
                 direction = l.v1.p - midline;
                 offset = direction;
                 //get almost unit vector but in much more cheaper way
-                if(abs(offset.x) > abs(offset.y) || abs(offset.x) == abs(offset.y) )
+                if(abs(offset.x) >= abs(offset.y) )
                     offset /= abs(offset.x);
                 else
                     offset /= abs(offset.y);
