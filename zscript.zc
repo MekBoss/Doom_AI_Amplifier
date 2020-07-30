@@ -19,9 +19,9 @@ version "3.8"
 //(sectors which are a several unconnected to each other polygons, but Gzdoom threat them as one polygon)
 //break graph and path traversing logic
 //empty for now
-#include "pathfinding/nodes/sub_node.zc"
+#include "pathfinding/graph_node/sub_node.zc"
 //base node definition
-#include "pathfinding/nodes/node_base.zc"
+#include "pathfinding/graph_node/node_base.zc"
 
 
 
