@@ -14,20 +14,16 @@ protected node_base root_node;
 protected array<sub_node> sub_nodes;
 
 //return all lines in current sector which have common vertex
-protected line_array_wrapper neighborn_lines(line l) const
+protected void get_neighborn_lines(in out array<line> ar, line l) const
 {
-    line_array_wrapper b = new("line_array_wrapper");
-
     for(uint i = 0; i < own_sector.lines.size(); i++)
     {
         if(own_sector.lines[i].v1.index() == l.v1.index() || own_sector.lines[i].v1.index() == l.v2.index() )
-            line_array_wrapper(b).lines_array.push(own_sector.lines[i]);
+            ar.push(own_sector.lines[i]);
 
         if(own_sector.lines[i].v2.index() == l.v1.index() || own_sector.lines[i].v2.index() == l.v2.index() )
-            line_array_wrapper(b).lines_array.push(own_sector.lines[i]);
+            ar.push(own_sector.lines[i]);
     }
-
-    return b;
 }
 
 //what function name says
@@ -38,29 +34,31 @@ protected bool is_single_polygon()
     //check every line in sector
     for(uint i = 0; i < own_sector.lines.size(); i++)
     {
+        //pick fist line in sectors lines array as starting
         line beginning = own_sector.lines[i];
         processed_lines.push(beginning);
 
         bool all_lines = false;
-
+        //and iterate through all sector lines
         while(all_lines == false)
         {
             for(uint j = 0; j < processed_lines.size(); j++)
             {
-                line_array_wrapper neighborgs = neighborn_lines(processed_lines[j]);
+                array<line> neighborgs;
+                neighborgs.clear();
+                get_neighborn_lines(neighborgs, processed_lines[j]);
 
                 uint lines_amount = processed_lines.size();
 
-                for(uint k = 0; k < neighborgs.lines_array.size(); k++)
+                for(uint k = 0; k < neighborgs.size(); k++)
                 {
-                    if(processed_lines.find(neighborgs.lines_array[k]) == processed_lines.size() )
-                        processed_lines.push(neighborgs.lines_array[k]);
+                    if(processed_lines.find(neighborgs[k]) == processed_lines.size() )
+                        processed_lines.push(neighborgs[k]);
                 
                 }
-                neighborgs.destroy();
 
                 //since nothing was added, it already iterate through all
-                //avaliable(connected) lines
+                //avaliable(connected to each other) lines
                 if(lines_amount == processed_lines.size() )
                 {
                     //if there are still lines

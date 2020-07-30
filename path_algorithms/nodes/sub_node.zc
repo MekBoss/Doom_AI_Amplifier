@@ -2,10 +2,9 @@ class sub_node : node_base
 {
 protected array<line> sector_part;
 
-void set_lines(line_array_wrapper i)
+void set_lines(in out array<line> i)
 {
-    sector_part.copy(line_array_wrapper(i).lines_array);
-    i.destroy();
+    sector_part.copy(i);
 }
 
 }

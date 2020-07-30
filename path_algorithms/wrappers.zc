@@ -31,11 +31,6 @@ class special_line_between_sectors
     array<sector> spec_sectors;
 }
 
-class line_array_wrapper
-{
-    array<line> lines_array; 
-}
-
 class line_wrapper
 {
     line l;
