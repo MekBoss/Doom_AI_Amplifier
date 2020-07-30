@@ -1,6 +1,6 @@
 
 
-class pathfinding_thinker : thinker
+class artificial_idiot : thinker
 {
 //kitten and it toy
 private actor blind_kitten, pseudotarget;
@@ -678,7 +678,7 @@ override void tick()
 
 class blind_kitten_target : actor
 {
-pathfinding_thinker origin;
+artificial_idiot origin;
 
 default
 {

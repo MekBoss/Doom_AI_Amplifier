@@ -195,15 +195,15 @@ override void WorldLoaded(WorldEvent e)
 
 
 //all thinkers which calls find path function and other stuff
-private array<pathfinding_thinker> monsters_gps;
+private array<artificial_idiot> monsters_gps;
 
 //attaches gps thinker to every spawned monsters in the game
 override void Worldthingspawned(WorldEvent e)
 {
     if(e.thing.bismonster == true)
     {
-        pathfinding_thinker t = pathfinding_thinker(new("pathfinding_thinker") );
-        pathfinding_thinker(new("pathfinding_thinker") ).init(e.thing, self);
+        artificial_idiot t = artificial_idiot(new("artificial_idiot") );
+        artificial_idiot(new("artificial_idiot") ).init(e.thing, self);
         monsters_gps.push(t);
     }
 } 

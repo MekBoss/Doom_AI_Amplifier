@@ -33,4 +33,4 @@ version "3.8"
 
 //use black pointers magic to apply pathfinding script to all possible monsters from doom mods
 //can cause SERIOUS lags if used on slaughtermaps or maps with enormous amount of enemies
-#include "pathfinding/guide.zc"
+#include "pathfinding/artificial_idiot.zc"
