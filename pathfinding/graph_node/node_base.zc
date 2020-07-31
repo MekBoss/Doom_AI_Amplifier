@@ -304,18 +304,18 @@ protected void find_neighborns()
 
 
 //what function name says
-protected array_wrapper get_all_neighborgs()
+protected node_array_wrapper get_all_neighborgs()
 {
-    array_wrapper all = array_wrapper(new("array_wrapper") );
+    node_array_wrapper all = node_array_wrapper(new("node_array_wrapper") );
     all.path.copy(neighborn_nodes);
-    return (array_wrapper)(all);
+    return (node_array_wrapper)(all);
 }
 
 //for pathfinding scripts
 //return all neighborn nodes which were not processed
-protected array_wrapper get_unmarked_neighborgs()
+protected node_array_wrapper get_unmarked_neighborgs()
 {
-    array_wrapper unmarked = array_wrapper(new("array_wrapper") );
+    node_array_wrapper unmarked = node_array_wrapper(new("node_array_wrapper") );
 
     for(uint i = 0; i < neighborn_nodes.size(); i++)
     {
@@ -324,7 +324,7 @@ protected array_wrapper get_unmarked_neighborgs()
             unmarked.path.push(neighborn_nodes[i]);
         }
     }
-    return (array_wrapper)(unmarked);
+    return (node_array_wrapper)(unmarked);
 }
 
 //return amoun of neighborns

@@ -1,4 +1,4 @@
-class array_wrapper
+class node_array_wrapper
 {
     array<node_base> path;
 

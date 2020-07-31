@@ -1,21 +1,21 @@
 class node_initializator : node_base
 {
-private array_wrapper graph_copy;
+private node_array_wrapper graph_copy;
 
-node_initializator init (array_wrapper data)
+node_initializator init (node_array_wrapper data)
 {
     graph_copy = data;
     return self;
 }
 //array of nodes which already grouped together goes here
 //because array of arrays with cutom data when?
-private array<array_wrapper> grouped_nodes;
+private array<node_array_wrapper> grouped_nodes;
 
 private void establish_connectivity()
 {
     if(graph_copy)
     {
-        let all_nodes = array_wrapper(graph_copy);
+        let all_nodes = node_array_wrapper(graph_copy);
 
         uint size = 0;
 
@@ -62,7 +62,7 @@ private void establish_connectivity()
                         let unmarked = node_base(processing_nodes[i]).get_unmarked_neighborgs();
 
                         //dont check bools because previous function already do such check
-                        unprocessed_nodes.copy(array_wrapper(unmarked).path);
+                        unprocessed_nodes.copy(node_array_wrapper(unmarked).path);
                     }
                 }
 
@@ -85,9 +85,8 @@ private void establish_connectivity()
                 }
 
                 //copy already existing group into "array" and store it for future
-                array_wrapper new_group = array_wrapper(new("array_wrapper") );
+                node_array_wrapper new_group = node_array_wrapper(new("node_array_wrapper") );
                 new_group.path.copy(processed_nodes);
-
 
                 //clear arrays so already grouped nodes dont interfere with non grouped
                 processed_nodes.clear();
@@ -102,7 +101,7 @@ private void establish_connectivity()
         //for every node group
         for(uint i = 0; i < grouped_nodes.size(); i++)
         {
-            let sub_graph = array_wrapper(grouped_nodes[i]);
+            let sub_graph = node_array_wrapper(grouped_nodes[i]);
             //and every node in it
             for(uint j = 0; j < sub_graph.path.size(); j++)
             {
@@ -128,7 +127,7 @@ private void find_breakpoints()
         //for every node group
         for(uint i = 0; i < grouped_nodes.size(); i++)
         {
-            let sub_graph = array_wrapper(grouped_nodes[i]);
+            let sub_graph = node_array_wrapper(grouped_nodes[i]);
             //and every node in it
             for(uint j = 0; j < sub_graph.path.size(); j++)
             {
@@ -180,7 +179,7 @@ private void find_deadlocks()
         //for every node group
         for(uint i = 0; i < grouped_nodes.size(); i++)
         {
-            let sub_graph = array_wrapper(grouped_nodes[i]);
+            let sub_graph = node_array_wrapper(grouped_nodes[i]);
             //and every node in it
             for(uint j = 0; j < sub_graph.path.size(); j++)
             {
@@ -193,12 +192,12 @@ private void find_deadlocks()
 }
 
 
-//make nodes updates information about neighbors only once in seconds instead of 35 times in seconds
+//make nodes updates information about self only once in seconds instead of 35 times in seconds
 private void set_performance()
 {
     if(graph_copy)
     {
-        let all_nodes = array_wrapper(graph_copy);
+        let all_nodes = node_array_wrapper(graph_copy);
 
         if(all_nodes.path.size() > TICRATE)
         {
@@ -225,8 +224,8 @@ private void set_performance()
 
 
 
-//actually happens one time on a map
-//just dont want to bother world tick
+//actually happens onl;y once on a map
+//just dont want to bother world tick event virtual
 override void tick()
 {
     //delay so all nodes can find it neighbors

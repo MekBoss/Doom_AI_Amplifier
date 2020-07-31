@@ -47,7 +47,7 @@ private void init_level_graph()
 }
 
 //collect all lines which have special on self, but have args[0] =/= 0
-//it means, in most cases, it activate some distant sector (not sector on back side of a line) 
+//it means, in most cases, it activate some distant, noit connected sector (not sector on back/front side of a line) 
 private void collect_special_line_sector() const
 {
     for(uint i = 0; i < level.lines.size(); i++)
@@ -146,7 +146,7 @@ special_line_between_sectors sector_to_line_special(sector polygon = null, bool 
     {
         if(distant_activators.size() > 0)
         {
-            uint index = 0;
+            uint index = -1;
             for(uint i = 0; i < distant_activators.size(); i++)
             {
                 if(special_line_between_sectors(distant_activators[i]).spec_sectors.find(polygon) < special_line_between_sectors(distant_activators[i]).spec_sectors.size() )
@@ -184,10 +184,10 @@ override void WorldLoaded(WorldEvent e)
     //without it algoritm can go to inf. loop
     //i.e. check level for it "piecesnes"
     //and connect all node in list, which represent corresponding "piece" of a level
-    array_wrapper full_graph = new("array_wrapper");
+    node_array_wrapper full_graph = new("node_array_wrapper");
     node_initializator support = new("node_initializator");
 
-    array_wrapper(full_graph).path.Copy(level_graph);
+    node_array_wrapper(full_graph).path.Copy(level_graph);
     node_initializator(support).init(full_graph);
 }
 
@@ -239,7 +239,6 @@ override void NetworkProcess(ConsoleEvent e)
         if(l)
         {
             vector2 a, b, midline, direction, offset;
-
 
             console.printf("v1 %f %f", l.v1.p.x, l.v1.p.y);
             console.printf("v2 %f %f", l.v2.p.x, l.v2.p.y);

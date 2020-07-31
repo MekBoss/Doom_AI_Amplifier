@@ -11,7 +11,7 @@ private linetracer sight_check;
 private eventhandler nodes;
 
 //store created route here
-private array_wrapper path;
+private node_array_wrapper path;
 
 private uint AI_flags;
 
@@ -115,7 +115,7 @@ private void get_path()
                     path = node_base(cur_node).all_star_search(cur_node, targ_node, blind_kitten);
                     break;
             }
-                array_wrapper(path).node_to_lines();
+                node_array_wrapper(path).node_to_lines();
         }
 
         else
@@ -458,25 +458,25 @@ override void tick()
                 //follow path here
                 if( path )
                 {
-                    if( array_wrapper(path).path_lines.size() >= 1 )
+                    if( node_array_wrapper(path).path_lines.size() >= 1 )
                     {
-                        uint last_sector = array_wrapper(path).path.size() - 1;
-                        uint last_line = array_wrapper(path).path_lines.size() - 1;
+                        uint last_sector = node_array_wrapper(path).path.size() - 1;
+                        uint last_line = node_array_wrapper(path).path_lines.size() - 1;
 
                         //if kitten in the same sector as last node route
-                        if(blind_kitten.cursector == array_wrapper(path).path[last_sector].get_sector() )
+                        if(blind_kitten.cursector == node_array_wrapper(path).path[last_sector].get_sector() )
                         {
                             //move along the line
                             if(last_line > 0)
                             {
                                 //line midpoint
                                 vector3 warp_point = (
-                                array_wrapper(path).path_lines[last_line - 1].v1.p.x + array_wrapper(path).path_lines[last_line - 1].v2.p.x,
-                                array_wrapper(path).path_lines[last_line - 1].v1.p.y + array_wrapper(path).path_lines[last_line - 1].v2.p.y,
+                                node_array_wrapper(path).path_lines[last_line - 1].v1.p.x + node_array_wrapper(path).path_lines[last_line - 1].v2.p.x,
+                                node_array_wrapper(path).path_lines[last_line - 1].v1.p.y + node_array_wrapper(path).path_lines[last_line - 1].v2.p.y,
                                 1) / 2;
                                 
                                 //normal to the line...
-                                vector3 normal = (array_wrapper(path).path_lines[last_line - 1].v1.p - array_wrapper(path).path_lines[last_line - 1].v2.p, 0);
+                                vector3 normal = (node_array_wrapper(path).path_lines[last_line - 1].v1.p - node_array_wrapper(path).path_lines[last_line - 1].v2.p, 0);
                                 //good that for simple 2d lines it can be achieved by next tricks without complex math
                                 double xx = normal.x;
                                 normal.x = -normal.y;
@@ -488,7 +488,7 @@ override void tick()
                                 else   
                                     normal /= abs(normal.y);
                                 
-                                if(level.pointinsector(warp_point.xy + normal.xy) == node_base(array_wrapper(path).path[last_sector - 1]).get_sector() )
+                                if(level.pointinsector(warp_point.xy + normal.xy) == node_base(node_array_wrapper(path).path[last_sector - 1]).get_sector() )
                                     warp_point.xy += (normal.xy * (70 + blind_kitten.radius) );
                                 else
                                     warp_point.xy -= (normal.xy * (70 + blind_kitten.radius) );
@@ -499,29 +499,29 @@ override void tick()
                             //if last line, switch to sectors
                             else
                             {
-                                pseudotarget.setorigin( node_base(array_wrapper(path).path[0]).get_center(), false );
+                                pseudotarget.setorigin( node_base(node_array_wrapper(path).path[0]).get_center(), false );
                             }
                             //check what pop, line or sector
                             //since amount of lines initially always should be at 1 smaller than amount of sectors
                             //do some comparisons here
                             if( (last_sector - last_line) == 1)
                             {
-                                array_wrapper(path).path.pop();
+                                node_array_wrapper(path).path.pop();
                             }
                             
                             else if(last_sector == last_line)
                             {
-                                array_wrapper(path).path_lines.pop();
-                                array_wrapper(path).path.pop();
+                                node_array_wrapper(path).path_lines.pop();
+                                node_array_wrapper(path).path.pop();
                             }
                         }
                     }
 /*                    
                     //if last node...
-                    else if (array_wrapper(path).path_lines.size() == 1)
+                    else if (node_array_wrapper(path).path_lines.size() == 1)
                     {
                         //...set pseudotarget in position...
-                        pseudotarget.setorigin( node_base(array_wrapper(path).path[0]).get_center(), false );
+                        pseudotarget.setorigin( node_base(node_array_wrapper(path).path[0]).get_center(), false );
                         //...clear all stuff...
                         AI_flags &= ~AIF_FOLLOW_PATH;
                         path.destroy();

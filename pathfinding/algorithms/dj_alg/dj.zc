@@ -6,12 +6,12 @@ protected double path_cost;
 
 //return path and bool is it completed
 //i.e. is pathactually passable by actor
-array_wrapper, bool dj_search(node_base start, node_base finish, actor walker = null)
+node_array_wrapper, bool dj_search(node_base start, node_base finish, actor walker = null)
 {
     //if walker is null it mean "runing script in debug mode"
 
     //create array wrapper for future
-    array_wrapper path_map = array_wrapper(new("array_wrapper") );
+    node_array_wrapper path_map = node_array_wrapper(new("node_array_wrapper") );
 
     //array for completed nodes in first phase
     array<node_base> completed_nodes; completed_nodes.clear();
@@ -32,13 +32,13 @@ array_wrapper, bool dj_search(node_base start, node_base finish, actor walker = 
     {
         //obvious
         if(start == finish)
-            return (array_wrapper)(path_map), false;
+            return (node_array_wrapper)(path_map), false;
         
         //save some (MUCH) time using pre calculated connectivity map
         //here check is two node connected to each other at all
         //without it script firstly iterate through ALL avaliable sectos before saying "NO WAY"
         if( node_base(start).check_connectivity_to(finish) == false )
-            return (array_wrapper)(path_map), false;
+            return (node_array_wrapper)(path_map), false;
 
         //switch to exit from loop
         bool reach = false;
@@ -89,7 +89,7 @@ array_wrapper, bool dj_search(node_base start, node_base finish, actor walker = 
                 if(path_dj_debug)
                     console.printf("waypoint exist, distance %f", waypoint.path_cost);
 
-                let crossroads = array_wrapper(waypoint.get_all_neighborgs() );
+                let crossroads = node_array_wrapper(waypoint.get_all_neighborgs() );
 
                 if(path_dj_debug)
                     console.printf("crossroads size %i", crossroads.path.size() );
@@ -244,7 +244,7 @@ array_wrapper, bool dj_search(node_base start, node_base finish, actor walker = 
     //okay, we finally make our way out...or dont
     //return array of path nodes
 
-    return (array_wrapper)(path_map), true;
+    return (node_array_wrapper)(path_map), true;
 }
 
 }
