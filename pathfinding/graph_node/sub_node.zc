@@ -1,10 +1,24 @@
 class sub_node : node_base
 {
-protected array<line> sector_part;
+protected array<line> sub_sector_lines;
 
+//init sub sector node
 void set_lines(in out array<line> i)
 {
-    sector_part.copy(i);
+    sub_sector_lines.copy(i);
+}
+//check is subnode contein specific line or no
+bool is_contain_line(line l) const
+{
+    if(sub_sector_lines.find(l) == sub_sector_lines.size() )
+        return false;
+    else
+        return true;
+}
+//return amount of lines in sub sector
+uint sub_sector_size() const
+{
+    return sub_sector_lines.size();
 }
 
 }

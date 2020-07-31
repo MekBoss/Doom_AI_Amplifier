@@ -11,7 +11,7 @@ protected node_base root_node;
 //which in fact are several separate different polygons
 //handle it here
 //array of all sub nodes
-protected array<sub_node> sub_nodes;
+protected array<sub_node> sector_sub_nodes;
 
 //return all lines in current sector which have common vertex
 protected void get_neighborn_lines(in out array<line> ar, line l) const
@@ -27,59 +27,107 @@ protected void get_neighborn_lines(in out array<line> ar, line l) const
 }
 
 //what function name says
-protected bool is_single_polygon()
+bool is_single_polygon() const
 {
+    return !sector_sub_nodes.size();
+}
+
+protected void check_connectivity()
+{
+    //store here all lines that loop was already processed
     array<line> processed_lines; processed_lines.clear();
 
     //check every line in sector
-    for(uint i = 0; i < own_sector.lines.size(); i++)
+    for(uint i = 0; i <= own_sector.lines.size(); i++)
     {
-        //pick fist line in sectors lines array as starting
-        line beginning = own_sector.lines[i];
-        processed_lines.push(beginning);
+        //should never happens, but eh...
+        if(i == own_sector.lines.size() )
+            console.printf("coinnectivity_check, out of bounds, address %p", self);
+        
+        bool start_line_picked = false;
+        while(start_line_picked == false)
+        {
+            //firstly check is i-th line are not already processed
+            //check all subsectors, if there are any
+            if(sector_sub_nodes.size() > 0)
+            {
+                //by checking all lines in sub sectors represenations
+                for(uint node_count = 0; node_count < sector_sub_nodes.size(); node_count++)
+                {
+                    if(sub_node(sector_sub_nodes[node_count]).is_contain_line(own_sector.lines[i]) == false)
+                    {
+                        start_line_picked = true;
+                        processed_lines.push(own_sector.lines[i]);
+                        break;
+                    }    
+                }
+            }
+            //else pick first line in sectors lines array as starting line
+            else
+            {
+                start_line_picked = true;
+                processed_lines.push(own_sector.lines[i]);
+            }
+        }
 
-        bool all_lines = false;
-        //and iterate through all sector lines
-        while(all_lines == false)
+        bool all_connected_lines = false;
+        //iterate through all connected lines in 
+        while(all_connected_lines == false)
         {
             for(uint j = 0; j < processed_lines.size(); j++)
             {
+                //get all lines in self sector which share same vertex
                 array<line> neighborgs;
                 neighborgs.clear();
                 get_neighborn_lines(neighborgs, processed_lines[j]);
-
+                //store amount of procesed lines for future comparing
                 uint lines_amount = processed_lines.size();
-
+                //push all "shared" lines in processed array, if they are still not there
                 for(uint k = 0; k < neighborgs.size(); k++)
                 {
-                    if(processed_lines.find(neighborgs[k]) == processed_lines.size() )
+                    if(processed_lines.find(neighborgs[k]) == processed_lines.size() )                            
                         processed_lines.push(neighborgs[k]);
-                
                 }
 
-                //since nothing was added, it already iterate through all
-                //avaliable(connected to each other) lines
+                //compare last known lines amount in array with current
+                //if it equal = nothing was added = it already iterate through all
+                //avaliable (connected to each other) lines
                 if(lines_amount == processed_lines.size() )
                 {
                     //if there are still lines
                     if(processed_lines.size() < own_sector.lines.size() )
                     {
+                        //store all currently processed line in specific wrapper
                         sub_node n = new("sub_node");
 
                         sub_node(n).init(own_sector, all_graph_list);
-                        sub_nodes.push( (sub_node)(n) );
+                        sector_sub_nodes.push( (sub_node)(n) );
+                        neighborgs.clear();
                     }
+                    else
+                        all_connected_lines = true;
                 }
             }
-
-            all_lines = true;
         }
+        uint processed_lines_count = 0;
+        //collect amount of lines in all subsectors
+        //important to properly exit from loop
+        if(sector_sub_nodes.size() > 0)
+            for(uint node_count = 0; node_count < sector_sub_nodes.size(); node_count++)
+                processed_lines_count += sub_node(sector_sub_nodes[node_count]).sub_sector_size();
+        
+        if(processed_lines_count >= own_sector.lines.size() )
+            i = own_sector.lines.size();
     }
 
-    if(sub_nodes.size() > 0)
-        return false;
+    if(sector_sub_nodes.size() > 1)
+    {
 
-    return true;
+    }
+
+    else
+        sector_sub_nodes.clear();
+
 }
 
 //pointer to sector which represented by this node
