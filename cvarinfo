@@ -8,3 +8,4 @@ server bool ai_allow_infighting = true;
 server bool ai_smart_infighting = false;
 
 server noarchive bool ai_monster_constant_shooting = true;
+server noarchive bool visualise_path_cvar = false;

@@ -92,34 +92,34 @@ private void get_path()
         node_base cur_node = path_algorithm(nodes).sector_to_node(blind_kitten.cursector);
         node_base targ_node = path_algorithm(nodes).sector_to_node(pseudotarget.target.cursector);
         
-        if(cur_node && targ_node) 
+        if(!cur_node || !targ_node) 
         {
-            if(cur_node == targ_node)
-            //shouldnt happens, but for safe
-            {
-                if(path)
-                    path.destroy();
-                
-                AI_flags |= AIF_IN_TARGET_SECTOR;
-                return;
-            }
-            
-            switch(path_which_use)
-            {
-                case 0 : 
-                    path = node_base(cur_node).dj_search(cur_node, targ_node, blind_kitten);
-                    break;
-
-                default:
-                case 1 :
-                    path = node_base(cur_node).all_star_search(cur_node, targ_node, blind_kitten);
-                    break;
-            }
-                array_wrapper(path).node_to_lines();
+            console.printf("get_path: current or target mode does not exist");
+            return;
         }
 
-        else
-            console.printf("some node does not exist");
+        if(cur_node == targ_node)
+        //shouldnt happens, but for safe
+        {
+            if(path)
+                path.destroy();
+            
+            AI_flags |= AIF_IN_TARGET_SECTOR;
+            return;
+        }
+        
+        switch(path_which_use)
+        {
+            case 0 : 
+                path = node_base(cur_node).dj_search(cur_node, targ_node, blind_kitten);
+                break;
+
+            default:
+            case 1 :
+                path = node_base(cur_node).all_star_search(cur_node, targ_node, blind_kitten);
+                break;
+        }
+        array_wrapper(path).node_to_lines();
 
     }
 }
@@ -397,6 +397,31 @@ private bool is_actual_target_in_fov()
 }
 
 
+private array<healthbonus> visualized_path;
+private void debug_path_visualization()
+{
+    if(visualized_path.size() > 0)
+    {
+        for(uint i = visualized_path.size()-1; i > -1; i--)
+            if(visualized_path[i])
+                visualized_path[i].destroy();
+        visualized_path.clear();
+    }
+
+    if (!path || !visualise_path_cvar)
+    {
+        return;
+    }
+
+    for (uint i = 0; i < array_wrapper(path).path_lines.size(); i++)
+    {
+        // if(!array_wrapper(path).path_lines[i])
+        let act = actor.spawn("healthbonus", ((array_wrapper(path).path_lines[i].v1.p + array_wrapper(path).path_lines[i].v2.p) / 2, 0) );
+        visualized_path.push(healthbonus(act) );
+    }
+    
+}
+
 /*
 |= for turn on
 &= ~"flag name" for turn off
@@ -447,13 +472,16 @@ override void tick()
                 //kitten target already changed to mod related target
                 //so if there are no path to it
                 if( path == null)
+                {
                     get_path();
-
+                    debug_path_visualization();
+                }
                 //or 3 second pass and target, probably, change it sector
                 if( update_timer > 105)
                 {
                     get_path();
                     update_timer = 0;
+                    debug_path_visualization();
                 }
 
                 //follow path here

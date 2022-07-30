@@ -249,6 +249,7 @@ line line_between_sectors(node_base which = null) const
         }
         return boundary_lines[line_id];
     }
+    console.printf("line_between_sectors: terminated null return, SHOULD NEVER HAPENS!!!!!!!");
     return null;
 }
 

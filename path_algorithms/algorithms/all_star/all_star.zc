@@ -52,8 +52,7 @@ array_wrapper, bool all_star_search(node_base start, node_base finish, actor wal
             fuse++;
             if(path_all_star_debug)
             {
-                console.printf("");
-                console.printf("size of completed_nodes %i", completed_nodes.size() );
+                console.printf("\nsize of completed_nodes %i", completed_nodes.size() );
             }
 
             //find closest to the finish node from all pre processed
