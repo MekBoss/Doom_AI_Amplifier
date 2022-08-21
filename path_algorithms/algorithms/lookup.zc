@@ -12,7 +12,7 @@ extend class node_base
     //return path and bool is it completed
     //i.e. is pathactually passable by actor
 
-    array_wrapper, bool dj_search(node_base start, node_base finish, actor walker = null, algo_type algo_type = AD_ALL_STAR)
+    array_wrapper, bool generate_path(node_base start, node_base finish, actor walker = null, algo_type algo_type = AD_ALL_STAR)
     {
         //if walker is null it mean "runing script in debug mode"
 

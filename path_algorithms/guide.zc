@@ -108,7 +108,7 @@ private void get_path(algo_type al = AD_ALL_STAR)
             return;
         }
         
-        path = node_base(cur_node).dj_search(cur_node, targ_node, blind_kitten, al);
+        path = node_base(cur_node).generate_path(cur_node, targ_node, blind_kitten, al);
     }
 }
 
