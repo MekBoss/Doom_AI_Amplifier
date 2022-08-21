@@ -85,7 +85,7 @@ private void switch_target_back()
 }
 
 //call "create path from A to B" function
-private void get_path()
+private void get_path(algo_type al = AD_ALL_STAR)
 {
     if(blind_kitten && pseudotarget && pseudotarget.target)
     {
@@ -108,19 +108,7 @@ private void get_path()
             return;
         }
         
-        switch(path_which_use)
-        {
-            case 0 : 
-                path = node_base(cur_node).dj_search(cur_node, targ_node, blind_kitten);
-                break;
-
-            default:
-            case 1 :
-                path = node_base(cur_node).all_star_search(cur_node, targ_node, blind_kitten);
-                break;
-        }
-        array_wrapper(path).node_to_lines();
-
+        path = node_base(cur_node).dj_search(cur_node, targ_node, blind_kitten, al);
     }
 }
 

@@ -23,10 +23,8 @@ version "3.8"
 //set technical stuff, like connectivity, id, spanning tree, performance, etc
 #include "path_algorithms/initialization/node_initializator.zc"
 
-//dijicstra algorithm, dj for short
-#include "path_algorithms/algorithms/dj_alg/dj.zc"
-//a*, all star just because
-#include "path_algorithms/algorithms/all_star/all_star.zc"
+//algo to look for path
+#include "path_algorithms/algorithms/lookup.zc"
 
 
 //use black pointers magic to apply pathfinding script to all possible monsters from doom mods
